@@ -21,6 +21,33 @@ body {
     font-family: 'Courier New', Courier, monospace;
 }
 
+.display-none {
+    display: none;
+}
+
+.display-block {
+    display: block;
+}
+
+.display-inline-block {
+    display: inline-block;
+}
+
+.menu-icon {
+    margin: 10px;
+    width: 64px;
+    height: 64px;
+    background-image: url("../ui/PNG/White/1x/menuList.png");
+    background-size: cover;
+}
+
+.menu-icon:hover {
+    background-image: url("../ui/PNG/Black/1x/menuList.png");
+    background-color: white;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
 .active-nav-link {
     text-decoration: underline;
 }
@@ -33,7 +60,6 @@ body {
 }
 
 .aphrodite-nav-item {
-    display: inline-block;
     vertical-align: middle;
 }
 
