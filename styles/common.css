@@ -1,0 +1,78 @@
+/*
+ * @author Omar Huseynov
+ * @license MIT
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background-color: black;
+    color: white;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.active-nav-link {
+    text-decoration: underline;
+}
+
+.aphrodite-nav {
+    list-style-type: none;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.aphrodite-nav-item {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.aphrodite-nav-item a {
+    display: block;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-size: 12pt;
+    padding: 12px;
+}
+
+.aphrodite-nav-item a:hover {
+    background-color: white;
+    color: black;
+    font-weight: bold;
+}
+
+canvas#aphrodite-output {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    z-index: -999;
+    width: 100%;
+    height: 100%;
+}
+
+.aphrodite-left-panel {
+    width: 400px;
+    overflow-x: auto;
+    display: inline-block;
+    margin: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.aphrodite-left-panel-item {
+    margin: 10px;
+}

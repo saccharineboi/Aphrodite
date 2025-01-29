@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "es6",
+    "allowJs": false,
+    "outDir": "./build",
+    "noEmitOnError": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "allowUnreachableCode": false,
+    "skipLibCheck": true,
+    "types": ["@webgpu/types"],
+    "baseUrl": "./",
+    "paths": {
+        "@aphrodite/*": ["src/*"]
+    }
+  }
+}

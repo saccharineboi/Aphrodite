@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Aphrodite | Triangle</title>
+    <link rel="stylesheet" href="../styles/common.css">
+    <link rel="icon" type="image/png" href="../img/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="../img/favicon.svg" />
+    <link rel="shortcut icon" href="../img/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../img/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Aphrodite" />
+    <link rel="manifest" href="../img/site.webmanifest" />
+    <script defer type="module" src="../build/scripts/triangle.js"></script>
+</head>
+<body>
+    <header>
+        <ul class="aphrodite-nav">
+            <li class="aphrodite-nav-item">
+                <a href="#"><img src="../img/aphrodite.png" width="32px" height="32px" alt="Aphrodite Logo"></a>
+            </li>
+            <li class="aphrodite-nav-item active-nav-link">
+                <a href="#">Final-Pass</a>
+            </li>
+            <li class="aphrodite-nav-item">
+                <a href="#">Depth-Pass</a>
+            </li>
+            <li class="aphrodite-nav-item">
+                <a href="#">Settings</a>
+            </li>
+            <li class="aphrodite-nav-item">
+                <a href="#">License</a>
+            </li>
+        </ul>
+    </header>
+    <canvas id="aphrodite-output"></canvas>
+    <div class="aphrodite-left-panel">
+        <p class="aphrodite-left-panel-item" id="aphrodite-realtime-info"></p>
+        <p class="aphrodite-left-panel-item" id="aphrodite-adapter-architecture"></p>
+        <p class="aphrodite-left-panel-item" id="aphrodite-adapter-description"></p>
+        <p class="aphrodite-left-panel-item" id="aphrodite-adapter-device"></p>
+        <p class="aphrodite-left-panel-item" id="aphrodite-adapter-vendor"></p>
+    </div>
+</body>
+</html>
