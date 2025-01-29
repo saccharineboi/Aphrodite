@@ -10,13 +10,11 @@ import { GetDefaultConsoleParams,
         const _console = new Console(aphrodite, GetDefaultConsoleParams());
 
         const vertices = new Float32Array([
-            -0.5, -0.5, 0.0,        1.0, 0.0, 0.0,
-             0.5, -0.5, 0.0,        0.0, 1.0, 0.0,
-             0.0,  0.5, 0.0,        0.0, 0.0, 1.0
+            -0.5, -0.5, 0.0,        1.0, 0.0, 0.0,      0.0, 0.0,
+             0.5, -0.5, 0.0,        0.0, 1.0, 0.0,      1.0, 0.0,
+             0.0,  0.5, 0.0,        0.0, 0.0, 1.0,      0.5, 1.0
         ]);
-
         const indices = new Uint32Array([ 0, 1, 2 ]);
-
         const offsets = new Float32Array([ 0.4, 0.4, 0.0, 0.0 ]);
 
         const positionAttribDesc: GPUVertexAttribute = {
@@ -31,9 +29,15 @@ import { GetDefaultConsoleParams,
             format: "float32x3"
         };
 
+        const texcoordAttribDesc: GPUVertexAttribute = {
+            shaderLocation: 2,
+            offset: 6 * Float32Array.BYTES_PER_ELEMENT,
+            format: "float32x2"
+        };
+
         const bufferLayoutDesc: GPUVertexBufferLayout = {
-            attributes: [ positionAttribDesc, colorAttribDesc ],
-            arrayStride: 6 * Float32Array.BYTES_PER_ELEMENT,
+            attributes: [ positionAttribDesc, colorAttribDesc, texcoordAttribDesc ],
+            arrayStride: 8 * Float32Array.BYTES_PER_ELEMENT,
             stepMode: "vertex"
         };
 
@@ -59,20 +63,35 @@ import { GetDefaultConsoleParams,
         const ebo = aphrodite.createBuffer(eboDesc, indices);
         const ubo = aphrodite.createBuffer(uboDesc, offsets);
 
-        const uniformBindGroupLayout = aphrodite.createBindGroupLayout([{
+        const group0Layout = aphrodite.createBindGroupLayout([{
             binding: 0,
             visibility: GPUShaderStage.VERTEX,
             buffer: {}
+        }, {
+            binding: 1,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: {}
+        }, {
+            binding: 2,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {}
         }]);
 
-        const uniformBindGroup = aphrodite.createBindGroup(uniformBindGroupLayout, [ ubo ]);
+        const brickTexture = await aphrodite.createTextureFromURL("../textures/brick.jpg",
+                                                                  "rgba8unorm",
+                                                                  GPUTextureUsage.TEXTURE_BINDING |
+                                                                  GPUTextureUsage.COPY_DST |
+                                                                  GPUTextureUsage.RENDER_ATTACHMENT);
+        const brickTextureSampler = aphrodite.createCommonSampler2D();
 
-        const triangleShader = await aphrodite.createShaderModule("../shaders/triangle.wgsl");
-        const pipelineLayout = aphrodite.createPipelineLayout([ uniformBindGroupLayout ]);
+        const group0 = aphrodite.createBindGroup(group0Layout, [ ubo ], [ brickTexture ], [ brickTextureSampler ]);
+
+        const triangleShader = await aphrodite.createShaderModuleFromURL("../shaders/triangle.wgsl");
+        const pipelineLayout = aphrodite.createPipelineLayout([ group0Layout ]);
         const renderPipeline = aphrodite.createRenderPipeline(triangleShader, [ bufferLayoutDesc ], pipelineLayout, "triangle-list");
 
         const render = () => {
-            aphrodite.submit(renderPipeline, [ uniformBindGroup ], vbo, ebo, 3, 1);
+            aphrodite.submit(renderPipeline, [ group0 ], vbo, ebo, 3, 1);
             _console.update();
             requestAnimationFrame(render);
         }

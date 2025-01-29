@@ -66,11 +66,39 @@ export class Aphrodite {
         this.dt = 0.0;
     }
 
-    public async createShaderModule(url: string): Promise<GPUShaderModule> {
+    public async createShaderModuleFromURL(url: string): Promise<GPUShaderModule> {
         const response = await fetch(url);
         const code = await response.text();
         const shaderDesc: GPUShaderModuleDescriptor = { code: code };
         return this.device.createShaderModule(shaderDesc);
+    }
+
+    public async createTextureFromURL(url: string, format: GPUTextureFormat, usage: GPUTextureUsageFlags): Promise<GPUTexture> {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const bitmap = await createImageBitmap(blob);
+
+        const texDesc: GPUTextureDescriptor = {
+            size: {
+                width: bitmap.width,
+                height: bitmap.height
+            },
+            format: format,
+            usage: usage
+        };
+        const texture = this.device.createTexture(texDesc);
+        this.device.queue.copyExternalImageToTexture({ source: bitmap }, { texture }, texDesc.size);
+        return texture
+    }
+
+    public createCommonSampler2D(): GPUSampler {
+        return this.device.createSampler({
+            addressModeU: "repeat",
+            addressModeV: "repeat",
+            magFilter: "linear",
+            minFilter: "linear",
+            mipmapFilter: "linear"
+        });
     }
 
     public createPipelineLayout(bindGroupLayouts: GPUBindGroupLayout[]): GPUPipelineLayout {
@@ -84,16 +112,34 @@ export class Aphrodite {
         });
     }
 
-    public createBindGroup(layout: GPUBindGroupLayout, buffers: GPUBuffer[]) : GPUBindGroup {
+    public createBindGroup(layout: GPUBindGroupLayout, buffers: GPUBuffer[], textures: GPUTexture[], samplers: GPUSampler[]) : GPUBindGroup {
         const entriesArray: GPUBindGroupEntry[] = [];
+        let k = 0;
         for (let i = 0; i < buffers.length; ++i) {
             const newEntry: GPUBindGroupEntry = {
-                binding: i,
+                binding: k,
                 resource: {
                     buffer: buffers[i]
                 }
             };
             entriesArray.push(newEntry);
+            ++k;
+        }
+        for (let i = 0; i < textures.length; ++i) {
+            const newEntry: GPUBindGroupEntry = {
+                binding: k,
+                resource: textures[i].createView()
+            };
+            entriesArray.push(newEntry);
+            ++k;
+        }
+        for (let i = 0; i < samplers.length; ++i) {
+            const newEntry: GPUBindGroupEntry = {
+                binding: k,
+                resource: samplers[i]
+            };
+            entriesArray.push(newEntry);
+            ++k;
         }
         return this.device.createBindGroup({
             layout: layout,
