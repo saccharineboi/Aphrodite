@@ -246,19 +246,19 @@ export class Aphrodite {
     }
 
     public getAdapterArchitecture(): string {
-        return this.device.adapterInfo?.architecture ?? "Unknown";
+        return this.device.adapterInfo?.architecture ?? "";
     }
 
     public getAdapterDescription(): string {
-        return this.device.adapterInfo?.description ?? "Unknown";
+        return this.device.adapterInfo?.description ?? "";
     }
 
     public getAdapterDevice(): string {
-        return this.device.adapterInfo?.device ?? "Unknown";
+        return this.device.adapterInfo?.device ?? "";
     }
 
     public getAdapterVendor(): string {
-        return this.device.adapterInfo?.vendor ?? "Unknown";
+        return this.device.adapterInfo?.vendor ?? "";
     }
 
     public getDeltaTime(): number {
