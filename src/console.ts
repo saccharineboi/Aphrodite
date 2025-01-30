@@ -33,6 +33,10 @@ export class Console {
 
     private lastTime: number;
 
+    private totalFPS: number;
+    private totalMS: number;
+    private totalTicks: number;
+
     public constructor(aphrodite: Aphrodite, params: ConsoleParams) {
         this.aphrodite = aphrodite;
 
@@ -44,14 +48,18 @@ export class Console {
         this.adapterVendor = $(params.adapterVendorId) as HTMLParagraphElement;
 
         this.lastTime = -this.updateDelay;
+
+        this.totalFPS = 0.0;
+        this.totalMS = 0.0;
+        this.totalTicks = 0;
     }
 
     private updateRealtimeInfo(): void {
         const canvasWidth = this.aphrodite.getCanvasWidth();
         const canvasHeight = this.aphrodite.getCanvasHeight();
 
-        const fps = this.aphrodite.getFPS();
-        const ms = this.aphrodite.getDeltaTime();
+        const fps = this.totalFPS / this.totalTicks;
+        const ms = this.totalMS / this.totalTicks;
 
         const color = (() => {
             if (fps >= 60) {
@@ -102,6 +110,11 @@ export class Console {
     }
 
     public update(): void {
+        ++this.totalTicks;
+
+        this.totalFPS += this.aphrodite.getFPS();
+        this.totalMS += this.aphrodite.getDeltaTime();
+
         if (window.performance.now() - this.lastTime >= this.updateDelay) {
             this.updateRealtimeInfo();
 
@@ -111,6 +124,11 @@ export class Console {
             this.updateAdapterVendor();
 
             this.lastTime = window.performance.now();
+
+            this.totalTicks = 0;
+
+            this.totalFPS = 0.0;
+            this.totalMS = 0.0;
         }
     }
 }
