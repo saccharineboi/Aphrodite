@@ -1,3 +1,18 @@
+// Copyright (C) 2025 Omar Huseynov
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import { AphroditeException,
          Aphrodite } from "../src/renderer.js"
 import { GetDefaultConsoleParams,
@@ -15,7 +30,7 @@ import { GetDefaultConsoleParams,
              0.0,  0.5, 0.0,        0.0, 0.0, 1.0,      0.5, 1.0
         ]);
         const indices = new Uint32Array([ 0, 1, 2 ]);
-        const offsets = new Float32Array([ 0.4, 0.4, 0.0, 0.0 ]);
+        const offsets = new Float32Array([ 0.0, 0.0, 0.0, 0.0 ]);
 
         const positionAttribDesc: GPUVertexAttribute = {
             shaderLocation: 0,
@@ -98,11 +113,13 @@ import { GetDefaultConsoleParams,
         requestAnimationFrame(render);
     }
     catch (e) {
+        const exceptionDiv = document.getElementById("aphrodite-exception") as HTMLDivElement;
         if (e instanceof AphroditeException) {
-            console.log(e.toString());
+            exceptionDiv.innerHTML = e.toString();
         }
         else {
-            throw e;
+            exceptionDiv.innerHTML = `Unknown exception: ${JSON.stringify(e)}`;
         }
+        exceptionDiv.style.display = "flex";
     }
 })();
