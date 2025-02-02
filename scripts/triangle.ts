@@ -13,16 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { AphroditeException,
-         Aphrodite } from "../src/renderer.js"
-import { GetDefaultConsoleParams,
-         Console } from "../src/console.js";
+import * as Aphrodite from "../src/renderer.js";
+import * as Console from "../src/console.js";
 
 (async () => {
     try {
         const canvasId = "aphrodite-output";
-        const aphrodite = await Aphrodite.Create(canvasId);
-        const _console = new Console(aphrodite, GetDefaultConsoleParams());
+        const renderer = await Aphrodite.Renderer.Create(canvasId);
+        const _console = new Console.Console(renderer, Console.GetDefaultConsoleParams());
 
         const vertices = new Float32Array([
             -0.5, -0.5, 0.0,        1.0, 0.0, 0.0,      0.0, 0.0,
@@ -74,11 +72,11 @@ import { GetDefaultConsoleParams,
             mappedAtCreation: true
         };
 
-        const vbo = aphrodite.createBuffer(vboDesc, vertices);
-        const ebo = aphrodite.createBuffer(eboDesc, indices);
-        const ubo = aphrodite.createBuffer(uboDesc, offsets);
+        const vbo = renderer.createBuffer(vboDesc, vertices);
+        const ebo = renderer.createBuffer(eboDesc, indices);
+        const ubo = renderer.createBuffer(uboDesc, offsets);
 
-        const group0Layout = aphrodite.createBindGroupLayout([{
+        const group0Layout = renderer.createBindGroupLayout([{
             binding: 0,
             visibility: GPUShaderStage.VERTEX,
             buffer: {}
@@ -92,21 +90,21 @@ import { GetDefaultConsoleParams,
             sampler: {}
         }]);
 
-        const brickTexture = await aphrodite.createTextureFromURL("../textures/brick.jpg",
-                                                                  "rgba8unorm",
-                                                                  GPUTextureUsage.TEXTURE_BINDING |
-                                                                  GPUTextureUsage.COPY_DST |
-                                                                  GPUTextureUsage.RENDER_ATTACHMENT);
-        const brickTextureSampler = aphrodite.createCommonSampler2D();
+        const brickTexture = await renderer.createTextureFromURL("../textures/brick.jpg",
+                                                                 "rgba8unorm",
+                                                                 GPUTextureUsage.TEXTURE_BINDING |
+                                                                 GPUTextureUsage.COPY_DST |
+                                                                 GPUTextureUsage.RENDER_ATTACHMENT);
+        const brickTextureSampler = renderer.createCommonSampler2D();
 
-        const group0 = aphrodite.createBindGroup(group0Layout, [ ubo ], [ brickTexture ], [ brickTextureSampler ]);
+        const group0 = renderer.createBindGroup(group0Layout, [ ubo ], [ brickTexture ], [ brickTextureSampler ]);
 
-        const triangleShader = await aphrodite.createShaderModuleFromURL("../shaders/triangle.wgsl");
-        const pipelineLayout = aphrodite.createPipelineLayout([ group0Layout ]);
-        const renderPipeline = aphrodite.createRenderPipeline(triangleShader, [ bufferLayoutDesc ], pipelineLayout, "triangle-list");
+        const triangleShader = await renderer.createShaderModuleFromURL("../shaders/triangle.wgsl");
+        const pipelineLayout = renderer.createPipelineLayout([ group0Layout ]);
+        const renderPipeline = renderer.createRenderPipeline(triangleShader, [ bufferLayoutDesc ], pipelineLayout, "triangle-list");
 
         const render = () => {
-            aphrodite.submit(renderPipeline, [ group0 ], vbo, ebo, 3, 1);
+            renderer.submit(renderPipeline, [ group0 ], vbo, ebo, 3, 1);
             _console.update();
             requestAnimationFrame(render);
         }
@@ -114,7 +112,7 @@ import { GetDefaultConsoleParams,
     }
     catch (e) {
         const exceptionDiv = document.getElementById("aphrodite-exception") as HTMLDivElement;
-        if (e instanceof AphroditeException) {
+        if (e instanceof Aphrodite.Exception) {
             exceptionDiv.innerHTML = e.toString();
         }
         else {
