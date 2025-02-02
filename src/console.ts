@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { $,
-         Aphrodite } from "../src/renderer.js";
+import { $, Renderer } from "../src/renderer.js";
 
 export interface ConsoleParams {
     updateDelay: number;
@@ -37,7 +36,7 @@ export function GetDefaultConsoleParams(): ConsoleParams {
 }
 
 export class Console {
-    private aphrodite: Aphrodite;
+    private renderer: Renderer;
 
     private updateDelay: number;
     private realTimeInfo: HTMLParagraphElement;
@@ -52,8 +51,8 @@ export class Console {
     private totalMS: number;
     private totalTicks: number;
 
-    public constructor(aphrodite: Aphrodite, params: ConsoleParams) {
-        this.aphrodite = aphrodite;
+    public constructor(renderer: Renderer, params: ConsoleParams) {
+        this.renderer = renderer;
 
         this.updateDelay = params.updateDelay;
         this.realTimeInfo = $(params.realTimeInfoId) as HTMLParagraphElement;
@@ -70,8 +69,8 @@ export class Console {
     }
 
     private updateRealtimeInfo(): void {
-        const canvasWidth = this.aphrodite.getCanvasWidth();
-        const canvasHeight = this.aphrodite.getCanvasHeight();
+        const canvasWidth = this.renderer.getCanvasWidth();
+        const canvasHeight = this.renderer.getCanvasHeight();
 
         const fps = this.totalFPS / this.totalTicks;
         const ms = this.totalMS / this.totalTicks;
@@ -93,7 +92,7 @@ export class Console {
     }
 
     private updateAdapterArchitecture(): void {
-        const architecture = this.aphrodite.getAdapterArchitecture();
+        const architecture = this.renderer.getAdapterArchitecture();
         this.adapterArchitecture.innerHTML = `Adapter architecture: ${architecture}`;
         if (!architecture.length) {
             this.adapterArchitecture.style.display = "none";
@@ -101,7 +100,7 @@ export class Console {
     }
 
     private updateAdapterDescription(): void {
-        const description = this.aphrodite.getAdapterDescription();
+        const description = this.renderer.getAdapterDescription();
         this.adapterDescription.innerHTML = `Adapter description: ${description}`;
         if (!description.length) {
             this.adapterDescription.style.display = "none";
@@ -109,7 +108,7 @@ export class Console {
     }
 
     private updateAdapterDevice(): void {
-        const device = this.aphrodite.getAdapterDevice();
+        const device = this.renderer.getAdapterDevice();
         this.adapterDevice.innerHTML = `Adapter device: ${device}`;
         if (!device.length) {
             this.adapterDevice.style.display = "none";
@@ -117,7 +116,7 @@ export class Console {
     }
 
     private updateAdapterVendor(): void {
-        const vendor = this.aphrodite.getAdapterVendor();
+        const vendor = this.renderer.getAdapterVendor();
         this.adapterVendor.innerHTML = `Adapter vendor: ${vendor}`;
         if (!vendor.length) {
             this.adapterVendor.style.display = "none";
@@ -127,8 +126,8 @@ export class Console {
     public update(): void {
         ++this.totalTicks;
 
-        this.totalFPS += this.aphrodite.getFPS();
-        this.totalMS += this.aphrodite.getDeltaTime();
+        this.totalFPS += this.renderer.getFPS();
+        this.totalMS += this.renderer.getDeltaTime();
 
         if (window.performance.now() - this.lastTime >= this.updateDelay) {
             this.updateRealtimeInfo();

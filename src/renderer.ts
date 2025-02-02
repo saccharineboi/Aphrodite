@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-export class AphroditeException {
+export class Exception {
     private timestamp: Date;
 
     public constructor(private className: string,
@@ -40,12 +40,12 @@ export class AphroditeException {
 export function $(id: string): HTMLElement {
     const el = document.getElementById(id);
     if (!el) {
-        throw new AphroditeException("", "$", `element with id=${id} doesn't exist`);
+        throw new Exception("", "$", `element with id=${id} doesn't exist`);
     }
     return el;
 }
 
-export class Aphrodite {
+export class Renderer {
     private device: GPUDevice;
     private canvas: HTMLCanvasElement;
     private ctx: GPUCanvasContext;
@@ -53,22 +53,22 @@ export class Aphrodite {
     private lastTime: number;
     private dt: number;
 
-    public static async Create(canvasId: string): Promise<Aphrodite> {
+    public static async Create(canvasId: string): Promise<Renderer> {
         if (!navigator.gpu) {
-            throw new AphroditeException("Aphrodite", "Init", "WebGPU isn't supported");
+            throw new Exception("Renderer", "Init", "WebGPU isn't supported");
         }
 
         const adapter = await navigator.gpu.requestAdapter();
         if (!adapter) {
-            throw new AphroditeException("Aphrodite", "Init", "Adapter is NULL");
+            throw new Exception("Renderer", "Init", "Adapter is NULL");
         }
 
         const device = await adapter.requestDevice();
         if (!device) {
-            throw new AphroditeException("Aphrodite", "Init", "Device is NULL");
+            throw new Exception("Renderer", "Init", "Device is NULL");
         }
 
-        return new Aphrodite(canvasId, device);
+        return new Renderer(canvasId, device);
     }
 
     public constructor(canvasId: string, device: GPUDevice) {
@@ -279,7 +279,7 @@ export class Aphrodite {
     private configureContext(): GPUCanvasContext {
         const ctx = this.canvas.getContext("webgpu");
         if (!ctx) {
-            throw new AphroditeException("Aphrodite", "ctor", `Canvas doesn't have WebGPU context`);
+            throw new Exception("Renderer", "ctor", `Canvas doesn't have WebGPU context`);
         }
         ctx.configure({
             device: this.device,
