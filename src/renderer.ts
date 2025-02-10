@@ -52,7 +52,9 @@ export function Rad2Deg(rad: number): number {
     return rad * 180.0 / Math.PI;
 }
 
-export function FloatEquals(a: number, b: number, epsilon: number = 1e-6): boolean {
+export function FloatEquals(a: number,
+                            b: number,
+                            epsilon: number = 1e-6): boolean {
     return Math.abs(a - b) <= epsilon;
 }
 
@@ -78,7 +80,8 @@ export class Vector2 {
         return new Vector2(other.x, other.y);
     }
 
-    public constructor(public x: number, public y: number) {}
+    public constructor(public x: number,
+                       public y: number) {}
 
     public copy(): Vector2 {
         return new Vector2(this.x, this.y);
@@ -227,7 +230,9 @@ export class Vector3 {
         return new Vector3(other.x, other.y, other.z);
     }
 
-    public constructor(public x: number, public y: number, public z: number) {};
+    public constructor(public x: number,
+                       public y: number,
+                       public z: number) {};
 
     public copy(): Vector3 {
         return new Vector3(this.x, this.y, this.z);
@@ -305,7 +310,9 @@ export class Vector3 {
     }
 
     public dot(other: Vector3): number {
-        return this.x * other.x + this.y * other.y + this.z * other.z;
+        return this.x * other.x +
+               this.y * other.y +
+               this.z * other.z;
     }
 
     public squaredDist(other: Vector3): number {
@@ -403,7 +410,10 @@ export class Vector4 {
         return new Vector4(other.x, other.y, other.z, 1.0);
     }
 
-    public constructor(public x: number, public y: number, public z: number, public w: number) {};
+    public constructor(public x: number,
+                       public y: number,
+                       public z: number,
+                       public w: number) {};
 
     public copy(): Vector4 {
         return new Vector4(this.x, this.y, this.z, this.w);
@@ -490,7 +500,10 @@ export class Vector4 {
     }
 
     public dot(other: Vector4): number {
-        return this.x * other.x + this.y * other.y + this.z * other.z + this.w * other.w;
+        return this.x * other.x +
+               this.y * other.y +
+               this.z * other.z +
+               this.w * other.w;
     }
 
     public squaredDist(other: Vector4): number {
@@ -560,6 +573,93 @@ export class Vector4 {
 
     public toString(): string {
         return `(${this.x}, ${this.y}, ${this.z}, ${this.w})^T`;
+    }
+}
+
+export class Matrix2 {
+
+    public constructor(public col0: Vector2 = Vector2.X(),
+                       public col1: Vector2 = Vector2.Y()) {}
+
+    public copy(): Matrix2 {
+        return new Matrix2(this.col0.copy(), this.col1.copy());
+    }
+
+    public clone(other: Matrix2): this {
+        this.col0.clone(other.col0);
+        this.col1.clone(other.col1);
+        return this;
+    }
+
+    public add(other: Matrix2): Matrix2 {
+        return new Matrix2(this.col0.add(other.col0),
+                           this.col1.add(other.col1));
+    }
+
+    public sub(other: Matrix2): Matrix2 {
+        return new Matrix2(this.col0.sub(other.col0),
+                           this.col1.sub(other.col1));
+    }
+
+    public mul(other: Matrix2): Matrix2 {
+        const row0 = new Vector2(this.col0.x, this.col1.x);
+        const row1 = new Vector2(this.col0.y, this.col1.y);
+
+        return new Matrix2(new Vector2(row0.dot(other.col0), row1.dot(other.col0)),
+                           new Vector2(row0.dot(other.col1), row1.dot(other.col1)));
+    }
+
+    public div(other: Matrix2): Matrix2 {
+        return new Matrix2(this.col0.div(other.col0),
+                           this.col1.div(other.col1));
+    }
+
+    public addScalar(s: number): Matrix2 {
+        return new Matrix2(this.col0.addScalar(s),
+                           this.col1.addScalar(s));
+    }
+
+    public subScalar(s: number): Matrix2 {
+        return new Matrix2(this.col0.subScalar(s),
+                           this.col1.subScalar(s));
+    }
+
+    public mulScalar(s: number): Matrix2 {
+        return new Matrix2(this.col0.mulScalar(s),
+                           this.col1.mulScalar(s));
+    }
+
+    public divScalar(s: number): Matrix2 {
+        return new Matrix2(this.col0.divScalar(s),
+                           this.col1.divScalar(s));
+    }
+
+    public transpose(): Matrix2 {
+        return new Matrix2(new Vector2(this.col0.x, this.col1.x),
+                           new Vector2(this.col0.y, this.col1.y));
+    }
+
+    public det(): number {
+        return this.col0.x * this.col1.y - this.col1.x * this.col0.y;
+    }
+
+    public equals(other: Matrix2): boolean {
+        return this.col0.equals(other.col0) &&
+               this.col1.equals(other.col1);
+    }
+
+    public equalsExact(other: Matrix2): boolean {
+        return this.col0.equalsExact(other.col0) &&
+               this.col1.equalsExact(other.col1);
+    }
+
+    public toFloat32Array(): Float32Array {
+        return new Float32Array([ this.col0.x, this.col0.y,
+                                  this.col1.x, this.col1.y ]);
+    }
+
+    public toString(): string {
+        return `${this.col0.toString()}\n${this.col1.toString()}`;
     }
 }
 
