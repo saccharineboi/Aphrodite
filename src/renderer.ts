@@ -44,6 +44,525 @@ export function $(id: string): HTMLElement {
     return el;
 }
 
+export function Deg2Rad(deg: number): number {
+    return deg * Math.PI / 180.0;
+}
+
+export function Rad2Deg(rad: number): number {
+    return rad * 180.0 / Math.PI;
+}
+
+export function FloatEquals(a: number, b: number, epsilon: number = 1e-6): boolean {
+    return Math.abs(a - b) <= epsilon;
+}
+
+export class Vector2 {
+
+    public static Zero(): Vector2 {
+        return new Vector2(0.0, 0.0);
+    }
+
+    public static X(): Vector2 {
+        return new Vector2(1.0, 0.0);
+    }
+
+    public static Y(): Vector2 {
+        return new Vector2(0.0, 1.0);
+    }
+
+    public static FromVector3(other: Vector3): Vector2 {
+        return new Vector2(other.x, other.y);
+    }
+
+    public static FromVector4(other: Vector4): Vector2 {
+        return new Vector2(other.x, other.y);
+    }
+
+    public constructor(public x: number, public y: number) {}
+
+    public copy(): Vector2 {
+        return new Vector2(this.x, this.y);
+    }
+
+    public clone(other: Vector2): this {
+        this.x = other.x;
+        this.y = other.y;
+        return this;
+    }
+
+    public add(other: Vector2): Vector2 {
+        const x = this.x + other.x;
+        const y = this.y + other.y;
+
+        return new Vector2(x, y);
+    }
+
+    public sub(other: Vector2): Vector2 {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+
+        return new Vector2(x, y);
+    }
+
+    public mul(other: Vector2): Vector2 {
+        const x = this.x * other.x;
+        const y = this.y * other.y;
+
+        return new Vector2(x, y);
+    }
+
+    public div(other: Vector2): Vector2 {
+        const x = this.x / other.x;
+        const y = this.y / other.y;
+
+        return new Vector2(x, y);
+    }
+
+    public addScalar(s: number): Vector2 {
+        const x = this.x + s;
+        const y = this.y + s;
+
+        return new Vector2(x, y);
+    }
+
+    public subScalar(s: number): Vector2 {
+        const x = this.x - s;
+        const y = this.y - s;
+
+        return new Vector2(x, y);
+    }
+
+    public mulScalar(s: number): Vector2 {
+        const x = this.x * s;
+        const y = this.y * s;
+
+        return new Vector2(x, y);
+    }
+
+    public divScalar(s: number): Vector2 {
+        const x = this.x / s;
+        const y = this.y / s;
+
+        return new Vector2(x, y);
+    }
+
+    public dot(other: Vector2): number {
+        return this.x * other.x + this.y * other.y;
+    }
+
+    public squaredDist(other: Vector2): number {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+        return x * x + y * y;
+    }
+
+    public dist(other: Vector2): number {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+        return Math.sqrt(x * x + y * y);
+    }
+
+    public squaredLen(): number {
+        const x = this.x, y = this.y;
+        return x * x + y * y;
+    }
+
+    public len(): number {
+        const x = this.x, y = this.y;
+        return Math.sqrt(x * x + y * y);
+    }
+
+    public norm(): Vector2 {
+        const x = this.x, y = this.y;
+        const _squaredLen = x * x + y * y;
+        if (_squaredLen) {
+            const _len = Math.sqrt(_squaredLen);
+            return new Vector2(x / _len, y / _len);
+        }
+        return this.copy();
+    }
+
+    public equals(other: Vector2): boolean {
+        return FloatEquals(this.x, other.x) &&
+               FloatEquals(this.y, other.y);
+    }
+
+    public equalsExact(other: Vector2): boolean {
+        return this.x === other.x &&
+               this.y === other.y;
+    }
+
+    public toFloat32Array(): Float32Array {
+        return new Float32Array([this.x, this.y]);
+    }
+
+    public toString(): string {
+        return `(${this.x}, ${this.y})^T`;
+    }
+}
+
+export class Vector3 {
+
+    public static Zero(): Vector3 {
+        return new Vector3(0.0, 0.0, 0.0);
+    }
+
+    public static X(): Vector3 {
+        return new Vector3(1.0, 0.0, 0.0);
+    }
+
+    public static Y(): Vector3 {
+        return new Vector3(0.0, 1.0, 0.0);
+    }
+
+    public static Z(): Vector3 {
+        return new Vector3(0.0, 0.0, 1.0);
+    }
+
+    public static FromVector2(other: Vector2): Vector3 {
+        return new Vector3(other.x, other.y, 0.0);
+    }
+
+    public static FromVector4(other: Vector4): Vector3 {
+        return new Vector3(other.x, other.y, other.z);
+    }
+
+    public constructor(public x: number, public y: number, public z: number) {};
+
+    public copy(): Vector3 {
+        return new Vector3(this.x, this.y, this.z);
+    }
+
+    public clone(other: Vector3): this {
+        this.x = other.x;
+        this.y = other.y;
+        this.z = other.z;
+        return this;
+    }
+
+    public add(other: Vector3): Vector3 {
+        const x = this.x + other.x;
+        const y = this.y + other.y;
+        const z = this.z + other.z;
+
+        return new Vector3(x, y, z);
+    }
+
+    public sub(other: Vector3): Vector3 {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+        const z = this.z - other.z;
+
+        return new Vector3(x, y, z);
+    }
+
+    public mul(other: Vector3): Vector3 {
+        const x = this.x * other.x;
+        const y = this.y * other.y;
+        const z = this.z * other.z;
+
+        return new Vector3(x, y, z);
+    }
+
+    public div(other: Vector3): Vector3 {
+        const x = this.x / other.x;
+        const y = this.y / other.y;
+        const z = this.z / other.z;
+
+        return new Vector3(x, y, z);
+    }
+
+    public addScalar(s: number): Vector3 {
+        const x = this.x + s;
+        const y = this.y + s;
+        const z = this.z + s;
+
+        return new Vector3(x, y, z);
+    }
+
+    public subScalar(s: number): Vector3 {
+        const x = this.x - s;
+        const y = this.y - s;
+        const z = this.z - s;
+
+        return new Vector3(x, y, z);
+    }
+
+    public mulScalar(s: number): Vector3 {
+        const x = this.x * s;
+        const y = this.y * s;
+        const z = this.z * s;
+
+        return new Vector3(x, y, z);
+    }
+
+    public divScalar(s: number): Vector3 {
+        const x = this.x / s;
+        const y = this.y / s;
+        const z = this.z / s;
+
+        return new Vector3(x, y, z);
+    }
+
+    public dot(other: Vector3): number {
+        return this.x * other.x + this.y * other.y + this.z * other.z;
+    }
+
+    public squaredDist(other: Vector3): number {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+        const z = this.z - other.z;
+
+        return x * x + y * y + z * z;
+    }
+
+    public dist(other: Vector3): number {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+        const z = this.z - other.z;
+
+        return Math.sqrt(x * x + y * y + z * z);
+    }
+
+    public cross(other: Vector3): Vector3 {
+        const x = this.x, y = this.y, z = this.z;
+        const ox = other.x, oy = other.y, oz = other.z;
+        return new Vector3(y * oz - oy * z,
+                           z * ox - oz * x,
+                           x * oy - ox * y);
+    }
+
+    public squaredLen(): number {
+        const x = this.x, y = this.y, z = this.z;
+        return x * x + y * y + z * z;
+    }
+
+    public len(): number {
+        const x = this.x, y = this.y, z = this.z;
+        return Math.sqrt(x * x + y * y + z * z);
+    }
+
+    public norm(): Vector3 {
+        const x = this.x, y = this.y, z = this.z;
+        const _squaredLen = x * x + y * y + z * z;
+        if (_squaredLen) {
+            const _len = Math.sqrt(_squaredLen);
+            return new Vector3(x / _len, y / _len, z / _len);
+        }
+        return this.copy();
+    }
+
+    public equals(other: Vector3): boolean {
+        return FloatEquals(this.x, other.x) &&
+               FloatEquals(this.y, other.y) &&
+               FloatEquals(this.z, other.z);
+    }
+
+    public equalsExact(other: Vector3): boolean {
+        return this.x === other.x &&
+               this.y === other.y &&
+               this.z === other.z;
+    }
+
+    public toFloat32Array(): Float32Array {
+        return new Float32Array([ this.x, this.y, this.z ]);
+    }
+
+    public toString(): string {
+        return `(${this.x}, ${this.y}, ${this.z})^T`;
+    }
+}
+
+export class Vector4 {
+
+    public static Zero(): Vector4 {
+        return new Vector4(0.0, 0.0, 0.0, 0.0);
+    }
+
+    public static X(): Vector4 {
+        return new Vector4(1.0, 0.0, 0.0, 0.0);
+    }
+
+    public static Y(): Vector4 {
+        return new Vector4(0.0, 1.0, 0.0, 0.0);
+    }
+
+    public static Z(): Vector4 {
+        return new Vector4(0.0, 0.0, 1.0, 0.0);
+    }
+
+    public static W(): Vector4 {
+        return new Vector4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    public static FromVector2(other: Vector2): Vector4 {
+        return new Vector4(other.x, other.y, 0.0, 1.0);
+    }
+
+    public static FromVector3(other: Vector3): Vector4 {
+        return new Vector4(other.x, other.y, other.z, 1.0);
+    }
+
+    public constructor(public x: number, public y: number, public z: number, public w: number) {};
+
+    public copy(): Vector4 {
+        return new Vector4(this.x, this.y, this.z, this.w);
+    }
+
+    public clone(other: Vector4): this {
+        this.x = other.x;
+        this.y = other.y;
+        this.z = other.z;
+        this.w = other.w;
+        return this;
+    }
+
+    public add(other: Vector4): Vector4 {
+        const x = this.x + other.x;
+        const y = this.y + other.y;
+        const z = this.z + other.z;
+        const w = this.w + other.w;
+
+        return new Vector4(x, y, z, w);
+    }
+
+    public sub(other: Vector4): Vector4 {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+        const z = this.z - other.z;
+        const w = this.w - other.w;
+
+        return new Vector4(x, y, z, w);
+    }
+
+    public mul(other: Vector4): Vector4 {
+        const x = this.x * other.x;
+        const y = this.y * other.y;
+        const z = this.z * other.z;
+        const w = this.w * other.w;
+
+        return new Vector4(x, y, z, w);
+    }
+
+    public div(other: Vector4): Vector4 {
+        const x = this.x / other.x;
+        const y = this.y / other.y;
+        const z = this.z / other.z;
+        const w = this.w / other.w;
+
+        return new Vector4(x, y, z, w);
+    }
+
+    public addScalar(s: number): Vector4 {
+        const x = this.x + s;
+        const y = this.y + s;
+        const z = this.z + s;
+        const w = this.w + s;
+
+        return new Vector4(x, y, z, w);
+    }
+
+    public subScalar(s: number): Vector4 {
+        const x = this.x - s;
+        const y = this.y - s;
+        const z = this.z - s;
+        const w = this.w - s;
+
+        return new Vector4(x, y, z, w);
+    }
+
+    public mulScalar(s: number): Vector4 {
+        const x = this.x * s;
+        const y = this.y * s;
+        const z = this.z * s;
+        const w = this.w * s;
+
+        return new Vector4(x, y, z, w);
+    }
+
+    public divScalar(s: number): Vector4 {
+        const x = this.x / s;
+        const y = this.y / s;
+        const z = this.z / s;
+        const w = this.w / s;
+
+        return new Vector4(x, y, z, w);
+    }
+
+    public dot(other: Vector4): number {
+        return this.x * other.x + this.y * other.y + this.z * other.z + this.w * other.w;
+    }
+
+    public squaredDist(other: Vector4): number {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+        const z = this.z - other.z;
+        const w = this.w - other.w;
+
+        return x * x + y * y + z * z + w * w;
+    }
+
+    public dist(other: Vector4): number {
+        const x = this.x - other.x;
+        const y = this.y - other.y;
+        const z = this.z - other.z;
+        const w = this.w - other.w;
+
+        return Math.sqrt(x * x + y * y + z * z + w * w);
+    }
+
+    public cross(other: Vector4): Vector4 {
+        const x = this.x, y = this.y, z = this.z;
+        const ox = other.x, oy = other.y, oz = other.z;
+        return new Vector4(y * oz - oy * z,
+                           z * ox - oz * x,
+                           x * oy - ox * y,
+                           1.0);
+    }
+
+    public squaredLen(): number {
+        const x = this.x, y = this.y, z = this.z, w = this.w;
+        return x * x + y * y + z * z + w * w;
+    }
+
+    public len(): number {
+        const x = this.x, y = this.y, z = this.z, w = this.w;
+        return Math.sqrt(x * x + y * y + z * z + w * w);
+    }
+
+    public norm(): Vector4 {
+        const x = this.x, y = this.y, z = this.z, w = this.w;
+        const _squaredLen = x * x + y * y + z * z + w * w;
+        if (_squaredLen) {
+            const _len = Math.sqrt(_squaredLen);
+            return new Vector4(x / _len, y / _len, z / _len, w / _len);
+        }
+        return this.copy();
+    }
+
+    public equals(other: Vector4): boolean {
+        return FloatEquals(this.x, other.x) &&
+               FloatEquals(this.y, other.y) &&
+               FloatEquals(this.z, other.z) &&
+               FloatEquals(this.w, other.w);
+    }
+
+    public equalsExact(other: Vector4): boolean {
+        return this.x === other.x &&
+               this.y === other.y &&
+               this.z === other.z &&
+               this.w === other.w;
+    }
+
+    public toFloat32Array(): Float32Array {
+        return new Float32Array([ this.x, this.y, this.z ]);
+    }
+
+    public toString(): string {
+        return `(${this.x}, ${this.y}, ${this.z}, ${this.w})^T`;
+    }
+}
+
 export class Renderer {
     private device: GPUDevice;
     private canvas: HTMLCanvasElement;
