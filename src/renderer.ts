@@ -26,8 +26,7 @@ export class Exception {
     public getFunctionName(): string    { return this.functionName; }
     public getMessage(): string         { return this.message; }
 
-    public toString(): string
-    {
+    public toString(): string {
         const hours = this.timestamp.getHours();
         const minutes = this.timestamp.getMinutes();
         const seconds = this.timestamp.getSeconds();
@@ -243,22 +242,6 @@ export class Renderer {
 
     public getCanvasHeight(): number {
         return this.canvas.height;
-    }
-
-    public getAdapterArchitecture(): string {
-        return this.device.adapterInfo?.architecture ?? "";
-    }
-
-    public getAdapterDescription(): string {
-        return this.device.adapterInfo?.description ?? "";
-    }
-
-    public getAdapterDevice(): string {
-        return this.device.adapterInfo?.device ?? "";
-    }
-
-    public getAdapterVendor(): string {
-        return this.device.adapterInfo?.vendor ?? "";
     }
 
     public getDeltaTime(): number {

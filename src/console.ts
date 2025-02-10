@@ -18,20 +18,12 @@ import { $, Renderer } from "../src/renderer.js";
 export interface ConsoleParams {
     updateDelay: number;
     realTimeInfoId: string;
-    adapterArchitectureId: string;
-    adapterDescriptionId: string;
-    adapterDeviceId: string;
-    adapterVendorId: string;
 }
 
 export function GetDefaultConsoleParams(): ConsoleParams {
     return {
         updateDelay: 1000,
         realTimeInfoId: "aphrodite-realtime-info",
-        adapterArchitectureId: "aphrodite-adapter-architecture",
-        adapterDescriptionId: "aphrodite-adapter-description",
-        adapterDeviceId: "aphrodite-adapter-device",
-        adapterVendorId: "aphrodite-adapter-vendor"
     };
 }
 
@@ -40,10 +32,6 @@ export class Console {
 
     private updateDelay: number;
     private realTimeInfo: HTMLParagraphElement;
-    private adapterArchitecture: HTMLParagraphElement;
-    private adapterDescription: HTMLParagraphElement;
-    private adapterDevice: HTMLParagraphElement;
-    private adapterVendor: HTMLParagraphElement;
 
     private lastTime: number;
 
@@ -56,10 +44,6 @@ export class Console {
 
         this.updateDelay = params.updateDelay;
         this.realTimeInfo = $(params.realTimeInfoId) as HTMLParagraphElement;
-        this.adapterArchitecture = $(params.adapterArchitectureId) as HTMLParagraphElement;
-        this.adapterDescription = $(params.adapterDescriptionId) as HTMLParagraphElement;
-        this.adapterDevice = $(params.adapterDeviceId) as HTMLParagraphElement;
-        this.adapterVendor = $(params.adapterVendorId) as HTMLParagraphElement;
 
         this.lastTime = -this.updateDelay;
 
@@ -91,38 +75,6 @@ export class Console {
         this.realTimeInfo.style.color = color;
     }
 
-    private updateAdapterArchitecture(): void {
-        const architecture = this.renderer.getAdapterArchitecture();
-        this.adapterArchitecture.innerHTML = `Adapter architecture: ${architecture}`;
-        if (!architecture.length) {
-            this.adapterArchitecture.style.display = "none";
-        }
-    }
-
-    private updateAdapterDescription(): void {
-        const description = this.renderer.getAdapterDescription();
-        this.adapterDescription.innerHTML = `Adapter description: ${description}`;
-        if (!description.length) {
-            this.adapterDescription.style.display = "none";
-        }
-    }
-
-    private updateAdapterDevice(): void {
-        const device = this.renderer.getAdapterDevice();
-        this.adapterDevice.innerHTML = `Adapter device: ${device}`;
-        if (!device.length) {
-            this.adapterDevice.style.display = "none";
-        }
-    }
-
-    private updateAdapterVendor(): void {
-        const vendor = this.renderer.getAdapterVendor();
-        this.adapterVendor.innerHTML = `Adapter vendor: ${vendor}`;
-        if (!vendor.length) {
-            this.adapterVendor.style.display = "none";
-        }
-    }
-
     public update(): void {
         ++this.totalTicks;
 
@@ -131,11 +83,6 @@ export class Console {
 
         if (window.performance.now() - this.lastTime >= this.updateDelay) {
             this.updateRealtimeInfo();
-
-            this.updateAdapterArchitecture();
-            this.updateAdapterDescription();
-            this.updateAdapterDevice();
-            this.updateAdapterVendor();
 
             this.lastTime = window.performance.now();
 
