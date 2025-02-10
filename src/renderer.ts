@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-export class Exception {
+export class RendererException {
     private timestamp: Date;
 
     public constructor(private className: string,
@@ -32,14 +32,14 @@ export class Exception {
         const seconds = this.timestamp.getSeconds();
         const milliseconds = this.timestamp.getMilliseconds()
 
-        return `[${hours}:${minutes}:${seconds}.${milliseconds}] Aphrodite Exception at ${this.className}:${this.functionName}: ${this.message}`
+        return `[${hours}:${minutes}:${seconds}.${milliseconds}] Renderer Exception at ${this.className}:${this.functionName}: ${this.message}`
     }
 };
 
 export function $(id: string): HTMLElement {
     const el = document.getElementById(id);
     if (!el) {
-        throw new Exception("", "$", `element with id=${id} doesn't exist`);
+        throw new RendererException("", "$", `element with id=${id} doesn't exist`);
     }
     return el;
 }
@@ -54,17 +54,17 @@ export class Renderer {
 
     public static async Create(canvasId: string): Promise<Renderer> {
         if (!navigator.gpu) {
-            throw new Exception("Renderer", "Init", "WebGPU isn't supported");
+            throw new RendererException("Renderer", "Init", "WebGPU isn't supported");
         }
 
         const adapter = await navigator.gpu.requestAdapter();
         if (!adapter) {
-            throw new Exception("Renderer", "Init", "Adapter is NULL");
+            throw new RendererException("Renderer", "Init", "Adapter is NULL");
         }
 
         const device = await adapter.requestDevice();
         if (!device) {
-            throw new Exception("Renderer", "Init", "Device is NULL");
+            throw new RendererException("Renderer", "Init", "Device is NULL");
         }
 
         return new Renderer(canvasId, device);
@@ -262,7 +262,7 @@ export class Renderer {
     private configureContext(): GPUCanvasContext {
         const ctx = this.canvas.getContext("webgpu");
         if (!ctx) {
-            throw new Exception("Renderer", "ctor", `Canvas doesn't have WebGPU context`);
+            throw new RendererException("Renderer", "ctor", `Canvas doesn't have WebGPU context`);
         }
         ctx.configure({
             device: this.device,

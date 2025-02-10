@@ -112,7 +112,7 @@ import * as Console from "../src/console.js";
     }
     catch (e) {
         const exceptionDiv = document.getElementById("aphrodite-exception") as HTMLDivElement;
-        if (e instanceof Aphrodite.Exception) {
+        if (e instanceof Aphrodite.RendererException) {
             exceptionDiv.innerHTML = e.toString();
         }
         else {
