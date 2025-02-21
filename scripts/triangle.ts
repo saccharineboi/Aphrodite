@@ -22,11 +22,9 @@ import * as Console from "../src/console.js";
         const renderer = await Aphrodite.Renderer.Create(canvasId);
         const _console = new Console.Console(renderer, Console.GetDefaultConsoleParams());
 
-        const A = new Aphrodite.Matrix2(new Aphrodite.Vector2(3, 4), new Aphrodite.Vector2(5, 6));
-        const B = new Aphrodite.Matrix2(new Aphrodite.Vector2(-2, 2));
-
-        console.log(A.mul(B).toString());
-        console.log(B.mul(A).toString());
+        const A = new Aphrodite.Vector3(2.0, 3.0, 4.0);
+        const B = new Aphrodite.Vector3(-2.0, -3.0, -4.0);
+        console.log(A.add(B).toString());
 
         const vertices = new Float32Array([
             -0.5, -0.5, 0.0,        1.0, 0.0, 0.0,      0.0, 0.0,

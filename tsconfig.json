@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "es6",
     "module": "es6",
+    "declaration": true,
     "allowJs": false,
     "outDir": "./build",
     "noEmitOnError": true,
@@ -11,10 +12,15 @@
     "strictPropertyInitialization": true,
     "allowUnreachableCode": false,
     "skipLibCheck": true,
-    "types": ["@webgpu/types"],
+    "types": ["@webgpu/types", "@types/mocha"],
     "baseUrl": "./",
     "paths": {
         "@aphrodite/*": ["src/*"]
     }
-  }
+  },
+  "exclude": [
+      "node_modules",
+      "build",
+      "test"
+  ]
 }

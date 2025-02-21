@@ -9,12 +9,14 @@
   "scripts": {
     "start": "live-server --no-browser --port=3000 --https=node_modules/live-server-https",
     "build": "tsc",
-    "test": "mocha"
+    "test": "mocha --require ts-node/register test/*.ts"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@webgpu/types": "^0.1.53",
     "live-server": "^1.2.2",
     "live-server-https": "^0.0.2",
-    "mocha": "^11.1.0"
+    "mocha": "^11.1.0",
+    "ts-node": "^10.9.2"
   }
 }

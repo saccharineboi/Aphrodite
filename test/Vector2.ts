@@ -1,5 +1,5 @@
 import * as Aphrodite from "../build/src/renderer.js";
-import assert, {strictEqual} from "assert";
+import assert from "assert";
 
 describe("Aphrodite.Vector2", () => {
     describe("Zero()", () => {
