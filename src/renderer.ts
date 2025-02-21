@@ -568,7 +568,7 @@ export class Vector4 {
     }
 
     public toFloat32Array(): Float32Array {
-        return new Float32Array([ this.x, this.y, this.z ]);
+        return new Float32Array([ this.x, this.y, this.z, this.w ]);
     }
 
     public toString(): string {
@@ -721,7 +721,7 @@ export class Renderer {
         };
         const texture = this.device.createTexture(texDesc);
         this.device.queue.copyExternalImageToTexture({ source: bitmap }, { texture }, texDesc.size);
-        return texture
+        return texture;
     }
 
     public createCommonSampler2D(): GPUSampler {
