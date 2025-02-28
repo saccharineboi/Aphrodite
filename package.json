@@ -12,6 +12,7 @@
     "test": "mocha --require ts-node/register tests/*.ts"
   },
   "devDependencies": {
+    "@types/assert": "^1.5.11",
     "@types/mocha": "^10.0.10",
     "@webgpu/types": "^0.1.53",
     "live-server": "^1.2.2",

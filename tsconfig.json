@@ -19,8 +19,8 @@
     }
   },
   "exclude": [
-      "node_modules",
-      "build",
-      "test"
+      "./node_modules/**/*",
+      "./build/**/*",
+      "./tests/**/*"
   ]
 }
