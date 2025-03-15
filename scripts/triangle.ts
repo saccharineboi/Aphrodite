@@ -122,6 +122,6 @@ import * as Console from "../src/console.js";
         else {
             exceptionDiv.innerHTML = `Unknown exception: ${JSON.stringify(e)}`;
         }
-        exceptionDiv.style.display = "flex";
+        exceptionDiv.style.display = "block";
     }
 })();
