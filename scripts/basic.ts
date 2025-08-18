@@ -1,3 +1,12 @@
+const genDeltaTimeComputer = () => {
+    let lastTime = 0.0;
+    return () => {
+        const currentTime = performance.now();
+        const deltaTime = lastTime ? currentTime - lastTime : 0.0;
+        lastTime = currentTime;
+        return deltaTime;
+    };
+};
 
 async function main() {
     if (!navigator.gpu) {
@@ -19,6 +28,11 @@ async function main() {
         throw new Error("Canvas couldn't be found");
     }
 
+    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
     const ctx = canvas.getContext("webgpu");
     if (!ctx) {
         throw new Error("getContext() failed");
@@ -33,26 +47,39 @@ async function main() {
 
     ctx.configure(canvasConfig);
 
-    const colorTexture = ctx.getCurrentTexture();
-    const colorTextureView = colorTexture.createView();
+    const dt = genDeltaTimeComputer();
+    let tick = 0.0;
 
-    const colorAttachment: GPURenderPassColorAttachment = {
-        view: colorTextureView,
-        clearValue: { r: 0.2, g: 0.3, b: 0.3, a: 1.0 },
-        loadOp: "clear",
-        storeOp: "store"
+    const render = () => {
+        tick += dt() * 0.001;
+
+        const colorTexture = ctx.getCurrentTexture();
+        const colorTextureView = colorTexture.createView();
+
+        const red = (Math.sin(tick) + 1.0) * 0.5;
+        const green = (Math.cos(tick) + 1.0) * 0.5;
+
+        const colorAttachment: GPURenderPassColorAttachment = {
+            view: colorTextureView,
+            clearValue: { r: red, g: green, b: 0.3, a: 1.0 },
+            loadOp: "clear",
+            storeOp: "store"
+        };
+
+        const renderpassDesc: GPURenderPassDescriptor = {
+            colorAttachments: [colorAttachment]
+        };
+
+        const commandEncoder = device.createCommandEncoder();
+        const renderpass = commandEncoder.beginRenderPass(renderpassDesc);
+        renderpass.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
+        renderpass.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+
+        requestAnimationFrame(render);
     };
-
-    const renderpassDesc: GPURenderPassDescriptor = {
-        colorAttachments: [colorAttachment]
-    };
-
-    const commandEncoder = device.createCommandEncoder();
-    const renderpass = commandEncoder.beginRenderPass(renderpassDesc);
-    renderpass.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
-    renderpass.end();
-
-    device.queue.submit([commandEncoder.finish()]);
+    requestAnimationFrame(render);
 }
 
 main();
