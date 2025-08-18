@@ -12,7 +12,9 @@
     "strictPropertyInitialization": true,
     "allowUnreachableCode": false,
     "skipLibCheck": true,
-    "types": ["@webgpu/types", "@types/mocha"],
+    "types": ["@webgpu/types",
+              "@types/mocha",
+              "@types/dat.gui"],
     "baseUrl": "./",
     "paths": {
         "@aphrodite/*": ["src/*"]

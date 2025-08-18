@@ -1,3 +1,4 @@
+
 const genDeltaTimeComputer = () => {
     let lastTime = 0.0;
     return () => {
@@ -90,18 +91,28 @@ async function main() {
     const dt = genDeltaTimeComputer();
     let tick = 0.0;
 
+    const gui = new dat.GUI({ autoPlace: false });
+    document.querySelector("#gui")?.append(gui.domElement);
+
+    const colorsFolder = gui.addFolder("Colors");
+    const backgroundColorState = {
+        backgroundColor: [10, 10, 20]
+    };
+    colorsFolder.addColor(backgroundColorState, "backgroundColor")
+    colorsFolder.open();
+
     const render = () => {
         tick += dt() * 0.001;
 
         const colorTexture = ctx.getCurrentTexture();
         const colorTextureView = colorTexture.createView();
 
-        const red = (Math.sin(tick) + 1.0) * 0.5;
-        const green = (Math.cos(tick) + 1.0) * 0.5;
-
         const colorAttachment: GPURenderPassColorAttachment = {
             view: colorTextureView,
-            clearValue: { r: red, g: green, b: 0.3, a: 1.0 },
+            clearValue: { r: backgroundColorState.backgroundColor[0] / 255.0,
+                          g: backgroundColorState.backgroundColor[1] / 255.0,
+                          b: backgroundColorState.backgroundColor[2] / 255.0,
+                          a: 1.0 },
             loadOp: "clear",
             storeOp: "store"
         };

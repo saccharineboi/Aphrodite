@@ -14,3 +14,9 @@ canvas#aphrodite-render {
     height: 100%;
     position: absolute;
 }
+
+div#gui {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
