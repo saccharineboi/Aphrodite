@@ -8,6 +8,15 @@ const genDeltaTimeComputer = () => {
     };
 };
 
+const downloadText = async (url: string) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+    }
+    const text = await response.text();
+    return text;
+};
+
 async function main() {
     if (!navigator.gpu) {
         throw new Error("WebGPU is not available");
@@ -44,8 +53,39 @@ async function main() {
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
         alphaMode: "opaque"
     };
-
     ctx.configure(canvasConfig);
+
+    const basicShaderSource = await downloadText("../shaders/basic.wgsl");
+    const basicShaderDesc: GPUShaderModuleDescriptor = { code: basicShaderSource };
+    const basicShaderModule = device.createShaderModule(basicShaderDesc)
+
+    const pipelineLayoutDesc: GPUPipelineLayoutDescriptor = { bindGroupLayouts: [] };
+    const pipelineLayout = device.createPipelineLayout(pipelineLayoutDesc);
+
+    const colorState: GPUColorTargetState = {
+        format: "bgra8unorm"
+    };
+
+    const pipelineDesc: GPURenderPipelineDescriptor = {
+        layout: pipelineLayout,
+        vertex: {
+            module: basicShaderModule,
+            entryPoint: "vs_main",
+            buffers: []
+        },
+        fragment: {
+            module: basicShaderModule,
+            entryPoint: "fs_main",
+            targets: [colorState]
+        },
+        primitive: {
+            topology: "triangle-list",
+            frontFace: "ccw",
+            cullMode: "back"
+        }
+    };
+
+    const pipeline = await device.createRenderPipelineAsync(pipelineDesc);
 
     const dt = genDeltaTimeComputer();
     let tick = 0.0;
@@ -73,6 +113,8 @@ async function main() {
         const commandEncoder = device.createCommandEncoder();
         const renderpass = commandEncoder.beginRenderPass(renderpassDesc);
         renderpass.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
+        renderpass.setPipeline(pipeline);
+        renderpass.draw(3, 1);
         renderpass.end();
 
         device.queue.submit([commandEncoder.finish()]);
