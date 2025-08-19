@@ -18,6 +18,13 @@ const downloadText = async (url: string) => {
     return text;
 };
 
+const resizeCanvas = (canvas: HTMLCanvasElement) => {
+    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+};
+
 async function main() {
     if (!navigator.gpu) {
         throw new Error("WebGPU is not available");
@@ -36,11 +43,6 @@ async function main() {
     const canvas = document.querySelector("#aphrodite-canvas") as HTMLCanvasElement;
     if (!canvas) {
         throw new Error("Canvas couldn't be found");
-    }
-
-    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
     }
 
     const ctx = canvas.getContext("webgpu");
@@ -67,12 +69,47 @@ async function main() {
         format: "bgra8unorm"
     };
 
+    const aPosAttribDesc: GPUVertexAttribute = {
+        shaderLocation: 0,
+        offset: 0,
+        format: "float32x3"
+    };
+
+    const aColorAttribDesc: GPUVertexAttribute = {
+        shaderLocation: 1,
+        offset: Float32Array.BYTES_PER_ELEMENT * 3,
+        format: "float32x3"
+    };
+
+    const vertexBufferLayoutDesc: GPUVertexBufferLayout = {
+        attributes: [aPosAttribDesc, aColorAttribDesc],
+        arrayStride: Float32Array.BYTES_PER_ELEMENT * 6,
+        stepMode: "vertex"
+    };
+
+    const positions = new Float32Array([
+        -0.5, -0.5, 0.0,        1.0, 0.0, 0.0,
+         0.5, -0.5, 0.0,        0.0, 1.0, 0.0,
+         0.0,  0.5, 0.0,        0.0, 0.0, 1.0,
+    ]);
+
+    const vertexBufferDesc: GPUBufferDescriptor = {
+        size: positions.byteLength,
+        usage: GPUBufferUsage.VERTEX,
+        mappedAtCreation: true
+    };
+
+    const vertexBuffer = device.createBuffer(vertexBufferDesc);
+    const writeArray = new Float32Array(vertexBuffer.getMappedRange());
+    writeArray.set(positions);
+    vertexBuffer.unmap();
+
     const pipelineDesc: GPURenderPipelineDescriptor = {
         layout: pipelineLayout,
         vertex: {
             module: basicShaderModule,
             entryPoint: "vs_main",
-            buffers: []
+            buffers: [vertexBufferLayoutDesc]
         },
         fragment: {
             module: basicShaderModule,
@@ -102,6 +139,8 @@ async function main() {
     colorsFolder.open();
 
     const render = () => {
+        resizeCanvas(canvas);
+
         tick += dt() * 0.001;
 
         const colorTexture = ctx.getCurrentTexture();
@@ -125,6 +164,7 @@ async function main() {
         const renderpass = commandEncoder.beginRenderPass(renderpassDesc);
         renderpass.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
         renderpass.setPipeline(pipeline);
+        renderpass.setVertexBuffer(0, vertexBuffer);
         renderpass.draw(3, 1);
         renderpass.end();
 

@@ -1,18 +1,19 @@
 struct VertexInput {
-    @builtin(vertex_index) in_vertex_index: u32,
+    @location(0) a_pos: vec3<f32>,
+    @location(1) a_color: vec3<f32>,
 };
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
+    @location(0) v_color: vec3<f32>,
 };
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
-    let x = f32(1 - i32(input.in_vertex_index)) * 0.5;
-    let y = f32(i32(input.in_vertex_index & 1u) * 2 - 1) * 0.5;
-    out.clip_position = vec4<f32>(x, y, 0.0, 1.0);
-    return out;
+    var output: VertexOutput;
+    output.clip_position = vec4<f32>(input.a_pos, 1.0);
+    output.v_color = input.a_color;
+    return output;
 }
 
 struct FragmentOut {
@@ -20,8 +21,8 @@ struct FragmentOut {
 };
 
 @fragment
-fn fs_main(in: VertexOutput) -> FragmentOut {
+fn fs_main(input: VertexOutput) -> FragmentOut {
     var out: FragmentOut;
-    out.color = vec4<f32>(0.0, 1.0, 1.0, 1.0);
+    out.color = vec4<f32>(input.v_color, 1.0);
     return out;
 }
