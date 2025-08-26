@@ -9,13 +9,23 @@ const genDeltaTimeComputer = () => {
     };
 };
 
-const downloadText = async (url: string) => {
+const downloadText = async (url: string) : Promise<string> => {
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status}`);
     }
     const text = await response.text();
     return text;
+};
+
+const downloadImage = async (url: string) : Promise<ImageBitmap> => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+    }
+    const blob = await response.blob();
+    const imgBitmap = await createImageBitmap(blob);
+    return imgBitmap;
 };
 
 const resizeCanvas = (canvas: HTMLCanvasElement) => {
@@ -62,9 +72,6 @@ async function main() {
     const basicShaderDesc: GPUShaderModuleDescriptor = { code: basicShaderSource };
     const basicShaderModule = device.createShaderModule(basicShaderDesc)
 
-    const pipelineLayoutDesc: GPUPipelineLayoutDescriptor = { bindGroupLayouts: [] };
-    const pipelineLayout = device.createPipelineLayout(pipelineLayoutDesc);
-
     const colorState: GPUColorTargetState = {
         format: "bgra8unorm"
     };
@@ -81,28 +88,109 @@ async function main() {
         format: "float32x3"
     };
 
+    const aTexCoordAttribDesc: GPUVertexAttribute = {
+        shaderLocation: 2,
+        offset: Float32Array.BYTES_PER_ELEMENT * 6,
+        format: "float32x2"
+    };
+
     const vertexBufferLayoutDesc: GPUVertexBufferLayout = {
-        attributes: [aPosAttribDesc, aColorAttribDesc],
-        arrayStride: Float32Array.BYTES_PER_ELEMENT * 6,
+        attributes: [aPosAttribDesc, aColorAttribDesc, aTexCoordAttribDesc],
+        arrayStride: Float32Array.BYTES_PER_ELEMENT * 8,
         stepMode: "vertex"
     };
 
-    const positions = new Float32Array([
-        -0.5, -0.5, 0.0,        1.0, 0.0, 0.0,
-         0.5, -0.5, 0.0,        0.0, 1.0, 0.0,
-         0.0,  0.5, 0.0,        0.0, 0.0, 1.0,
+    const vertexData = new Float32Array([
+        -0.5, -0.5, 0.0,        1.0, 0.0, 0.0,      0.0, 0.0,
+         0.5, -0.5, 0.0,        0.0, 1.0, 0.0,      1.0, 0.0,
+         0.0,  0.5, 0.0,        0.0, 0.0, 1.0,      0.5, 1.0
     ]);
 
     const vertexBufferDesc: GPUBufferDescriptor = {
-        size: positions.byteLength,
+        size: vertexData.byteLength,
         usage: GPUBufferUsage.VERTEX,
         mappedAtCreation: true
     };
 
     const vertexBuffer = device.createBuffer(vertexBufferDesc);
-    const writeArray = new Float32Array(vertexBuffer.getMappedRange());
-    writeArray.set(positions);
+    let writeArray = new Float32Array(vertexBuffer.getMappedRange());
+    writeArray.set(vertexData);
     vertexBuffer.unmap();
+
+    const offsets = new Float32Array([ 0.2, 0.2, 0.0 ]);
+
+    const uniformBufferDesc: GPUBufferDescriptor = {
+        size: offsets.byteLength,
+        usage: GPUBufferUsage.UNIFORM,
+        mappedAtCreation: true,
+    };
+
+    const offsetBuffer = device.createBuffer(uniformBufferDesc);
+    writeArray = new Float32Array(offsetBuffer.getMappedRange());
+    writeArray.set(offsets);
+    offsetBuffer.unmap();
+
+    const wallTextureData = await downloadImage("../textures/wall.jpg");
+    const wallTextureDescriptor: GPUTextureDescriptor = {
+        size: {
+            width: wallTextureData.width,
+            height: wallTextureData.height
+        },
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+    };
+    const wallTexture = device.createTexture(wallTextureDescriptor);
+    device.queue.copyExternalImageToTexture({
+        source: wallTextureData
+    },
+    {
+        texture: wallTexture
+    },
+    wallTextureDescriptor.size);
+
+    const wallTextureSamplerDesc: GPUSamplerDescriptor = {
+        addressModeU: "repeat",
+        addressModeV: "repeat",
+        magFilter: "linear",
+        minFilter: "linear",
+        mipmapFilter: "linear"
+    };
+    const wallTextureSampler = device.createSampler(wallTextureSamplerDesc);
+
+    const uniformGroup0LayoutDesc: GPUBindGroupLayoutDescriptor = {
+        entries: [{
+            binding: 0,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: {}
+        }, {
+            binding: 1,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: {}
+        }, {
+            binding: 2,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {}
+        }]
+    };
+    const uniformGroup0Layout = device.createBindGroupLayout(uniformGroup0LayoutDesc);
+    const uniformGroup0 = device.createBindGroup({
+        layout: uniformGroup0Layout,
+        entries: [{
+            binding: 0,
+            resource: {
+                buffer: offsetBuffer
+            }
+        }, {
+            binding: 1,
+            resource: wallTexture.createView()
+        }, {
+            binding: 2,
+            resource: wallTextureSampler
+        }]
+    });
+
+    const pipelineLayoutDesc: GPUPipelineLayoutDescriptor = { bindGroupLayouts: [uniformGroup0Layout] };
+    const pipelineLayout = device.createPipelineLayout(pipelineLayoutDesc);
 
     const pipelineDesc: GPURenderPipelineDescriptor = {
         layout: pipelineLayout,
@@ -164,6 +252,7 @@ async function main() {
         const renderpass = commandEncoder.beginRenderPass(renderpassDesc);
         renderpass.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
         renderpass.setPipeline(pipeline);
+        renderpass.setBindGroup(0, uniformGroup0);
         renderpass.setVertexBuffer(0, vertexBuffer);
         renderpass.draw(3, 1);
         renderpass.end();
