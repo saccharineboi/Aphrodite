@@ -11,12 +11,12 @@ struct VertexOutput {
 };
 
 @group(0) @binding(0)
-var<uniform> u_offset: vec3<f32>;
+var<uniform> u_pvm: mat4x4<f32>;
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    output.v_pos = vec4<f32>(input.a_pos + u_offset, 1.0);
+    output.v_pos = u_pvm * vec4<f32>(input.a_pos, 1.0);
     output.v_color = input.a_color;
     output.v_texcoord = input.a_texcoord;
     return output;
