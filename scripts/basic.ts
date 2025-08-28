@@ -998,13 +998,13 @@ async function main() {
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
     };
     const wallTexture = device.createTexture(wallTextureDescriptor);
-    device.queue.copyExternalImageToTexture({
+    device.queue.copyExternalImageToTexture(
+    {
         source: wallTextureData
     },
     {
         texture: wallTexture
-    },
-    wallTextureDescriptor.size);
+    }, wallTextureDescriptor.size);
 
     const wallTextureSamplerDesc: GPUSamplerDescriptor = {
         addressModeU: "repeat",
@@ -1047,8 +1047,18 @@ async function main() {
         }]
     });
 
+    const msaaTextureDesc: GPUTextureDescriptor = {
+        size: [ canvas.width, canvas.height],
+        sampleCount: 4,
+        format: navigator.gpu.getPreferredCanvasFormat(),
+        usage: GPUTextureUsage.RENDER_ATTACHMENT
+    };
+    let msaaTexture = device.createTexture(msaaTextureDesc);
+    let msaaTextureView = msaaTexture.createView();
+
     const depthTextureDesc: GPUTextureDescriptor = {
         size: [ canvas.width, canvas.height, 1 ],
+        sampleCount: 4,
         dimension: "2d",
         format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT
@@ -1058,7 +1068,7 @@ async function main() {
     let depthTextureView = depthTexture.createView();
 
     const pipelineLayoutDesc: GPUPipelineLayoutDescriptor = {
-        bindGroupLayouts: [uniformGroup0Layout]
+        bindGroupLayouts: [uniformGroup0Layout],
     };
     const pipelineLayout = device.createPipelineLayout(pipelineLayoutDesc);
 
@@ -1082,7 +1092,10 @@ async function main() {
         depthStencil: {
             depthWriteEnabled: true,
             depthCompare: "greater-equal",
-            format: "depth32float"
+            format: "depth32float",
+        },
+        multisample: {
+            count: 4
         }
     };
 
@@ -1109,6 +1122,11 @@ async function main() {
             depthTextureDesc.size = [ width, height, 1 ];
             depthTexture = device.createTexture(depthTextureDesc);
             depthTextureView = depthTexture.createView();
+
+            msaaTexture.destroy();
+            msaaTextureDesc.size = [ width, height ];
+            msaaTexture = device.createTexture(msaaTextureDesc);
+            msaaTextureView = msaaTexture.createView();
         });
 
         const projectionMatrix = Matrix4x4.GenPerspective(Math.PI / 2,
@@ -1120,7 +1138,7 @@ async function main() {
 
         const translationMatrix = Matrix4x4.GenTranslation(new Vector3(0.0, 0.0, 0.0));
         const rotationMatrix = Matrix4x4.GenRotationZ(tick);
-        const scaleMatrix = Matrix4x4.GenScale(new Vector3(1, 1, 1));
+        const scaleMatrix = Matrix4x4.GenScale(new Vector3(3, 3, 3));
 
         const pvmMatrix = projectionMatrix.mul(viewMatrix)
                                           .mul(translationMatrix)
@@ -1132,25 +1150,26 @@ async function main() {
         const colorTextureView = colorTexture.createView();
 
         const colorAttachment: GPURenderPassColorAttachment = {
-            view: colorTextureView,
+            view: msaaTextureView,
+            resolveTarget: colorTextureView,
             clearValue: { r: backgroundColorState.backgroundColor[0] / 255.0,
                           g: backgroundColorState.backgroundColor[1] / 255.0,
                           b: backgroundColorState.backgroundColor[2] / 255.0,
                           a: 1.0 },
             loadOp: "clear",
-            storeOp: "store"
+            storeOp: "store",
         };
 
         const depthAttachment: GPURenderPassDepthStencilAttachment = {
             view: depthTextureView,
             depthClearValue: 0,
             depthLoadOp: "clear",
-            depthStoreOp: "store"
+            depthStoreOp: "store",
         };
 
         const renderpassDesc: GPURenderPassDescriptor = {
             colorAttachments: [colorAttachment],
-            depthStencilAttachment: depthAttachment
+            depthStencilAttachment: depthAttachment,
         };
 
         const commandEncoder = device.createCommandEncoder();
