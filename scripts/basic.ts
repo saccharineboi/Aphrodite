@@ -1,5 +1,8 @@
+function calcMipLevelCount(width: number, height: number): number {
+    return Math.ceil(Math.log2(Math.max(width, height)));
+}
 
-const genDeltaTimeComputer = () => {
+function genDeltaTimeComputer() {
     let lastTime = 0.0;
     return () => {
         const currentTime = performance.now();
@@ -9,7 +12,7 @@ const genDeltaTimeComputer = () => {
     };
 };
 
-const downloadText = async (url: string) : Promise<string> => {
+async function downloadText(url: string) : Promise<string> {
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status}`);
@@ -18,7 +21,7 @@ const downloadText = async (url: string) : Promise<string> => {
     return text;
 };
 
-const downloadImage = async (url: string) : Promise<ImageBitmap> => {
+async function downloadImage(url: string) : Promise<ImageBitmap> {
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
@@ -28,8 +31,22 @@ const downloadImage = async (url: string) : Promise<ImageBitmap> => {
     return imgBitmap;
 };
 
-const resizeCanvas = (canvas: HTMLCanvasElement,
-                      callback?: (width: number, height: number) => void) => {
+async function downloadImageWithMipmaps(src: string,
+                                        ext: string = "png",
+                                        mipmapExt: string = "_mip") {
+    const rootBitmap = await downloadImage(`${src}.${ext}`);
+    const mipmapCnt = calcMipLevelCount(rootBitmap.width, rootBitmap.height);
+
+    const sources = [ `${src}.${ext}` ];
+    for (let i = 1; i <= mipmapCnt; ++i) {
+        sources.push(`${src}${mipmapExt}${i}.${ext}`)
+    }
+    const promises = sources.map(url => downloadImage(url));
+    return Promise.all(promises);
+}
+
+function resizeCanvas(canvas: HTMLCanvasElement,
+                      callback?: (width: number, height: number) => void) {
     if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -697,6 +714,20 @@ class Matrix4x4 {
                              new Vector4(0, 0, 0, 1));
     }
 
+    public static GenRotationXYZ(rotation: Vector3): Matrix4x4 {
+        const rotationX = Matrix4x4.GenRotationX(rotation.x);
+        const rotationY = Matrix4x4.GenRotationY(rotation.y);
+        const rotationZ = Matrix4x4.GenRotationZ(rotation.z);
+        return rotationX.mul(rotationY).mul(rotationZ);
+    }
+
+    public static GenRotationZYX(rotation: Vector3): Matrix4x4 {
+        const rotationX = Matrix4x4.GenRotationX(rotation.x);
+        const rotationY = Matrix4x4.GenRotationY(rotation.y);
+        const rotationZ = Matrix4x4.GenRotationZ(rotation.z);
+        return rotationZ.mul(rotationY).mul(rotationX);
+    }
+
     public static GenScale(s: Vector3): Matrix4x4 {
         return new Matrix4x4(new Vector4(s.x, 0.0, 0.0, 0.0),
                              new Vector4(0.0, s.y, 0.0, 0.0),
@@ -885,31 +916,44 @@ class Matrix4x4 {
     }
 };
 
+interface AddVec3FolderParams {
+    parentFolder: dat.GUI,
+    folderName: string,
+    vec3: Vector3,
+    min: number,
+    max: number,
+    step: number
+};
+
+const addVec3ToGUIFolder = (params: AddVec3FolderParams): dat.GUI => {
+    const newFolder = params.parentFolder.addFolder(params.folderName);
+    newFolder.add(params.vec3, "x", params.min, params.max, params.step);
+    newFolder.add(params.vec3, "y", params.min, params.max, params.step);
+    newFolder.add(params.vec3, "z", params.min, params.max, params.step);
+    return newFolder;
+};
+
+
 async function main() {
-    if (!navigator.gpu) {
-        throw new Error("WebGPU is not available");
-    }
+    ASSERT(!!navigator.gpu, "WebGPU is not available");
 
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) {
-        throw new Error("Failed to request an adapter");
-    }
+    const adapter = await navigator.gpu.requestAdapter() as GPUAdapter;
+    ASSERT(!!adapter, "Failed to request an adapter");
 
-    const device = await adapter.requestDevice();
-    if (!device) {
-        throw new Error("Failed to request a device");
-    }
+    const deviceDescriptor: GPUDeviceDescriptor = {
+        requiredFeatures: [
+            "timestamp-query"
+        ]
+    };
+    const device = await adapter.requestDevice(deviceDescriptor) as GPUDevice;
+    ASSERT(!!device, "Failed to request a device");
 
     const canvas = document.querySelector("#aphrodite-canvas") as HTMLCanvasElement;
-    if (!canvas) {
-        throw new Error("Canvas couldn't be found");
-    }
+    ASSERT(!!canvas, "Canvas couldn't be found");
     resizeCanvas(canvas);
 
-    const ctx = canvas.getContext("webgpu");
-    if (!ctx) {
-        throw new Error("getContext() failed");
-    }
+    const ctx = canvas.getContext("webgpu") as GPUCanvasContext;
+    ASSERT(!!ctx, "getContext() failed");
 
     const canvasConfig: GPUCanvasConfiguration = {
         device: device,
@@ -933,7 +977,7 @@ async function main() {
         format: "float32x3"
     };
 
-    const aColorAttribDesc: GPUVertexAttribute = {
+    const aNormAttribDesc: GPUVertexAttribute = {
         shaderLocation: 1,
         offset: Float32Array.BYTES_PER_ELEMENT * 3,
         format: "float32x3"
@@ -946,15 +990,16 @@ async function main() {
     };
 
     const vertexBufferLayoutDesc: GPUVertexBufferLayout = {
-        attributes: [aPosAttribDesc, aColorAttribDesc, aTexCoordAttribDesc],
+        attributes: [aPosAttribDesc, aNormAttribDesc, aTexCoordAttribDesc],
         arrayStride: Float32Array.BYTES_PER_ELEMENT * 8,
         stepMode: "vertex"
     };
 
     const vertexData = new Float32Array([
-        -0.5, -0.5, 0.0,        1.0, 0.0, 0.0,      0.0, 0.0,
-         0.5, -0.5, 0.0,        0.0, 1.0, 0.0,      1.0, 0.0,
-         0.0,  0.5, 0.0,        0.0, 0.0, 1.0,      0.5, 1.0
+        -0.5, -0.5, 0.0,        0.0, 0.0, 1.0,      -0.5, -0.5,
+        -0.5,  0.5, 0.0,        0.0, 0.0, 1.0,      -0.5,  0.5,
+         0.5,  0.5, 0.0,        0.0, 0.0, 1.0,       0.5,  0.5,
+         0.5, -0.5, 0.0,        0.0, 0.0, 1.0,       0.5, -0.5
     ]);
 
     const vertexBufferDesc: GPUBufferDescriptor = {
@@ -968,7 +1013,7 @@ async function main() {
     writeArray.set(vertexData);
     vertexBuffer.unmap();
 
-    const indexData = new Uint32Array([ 0, 1, 2 ]);
+    const indexData = new Uint32Array([ 0, 2, 1, 0, 3, 2 ]);
 
     const indexBufferDesc: GPUBufferDescriptor = {
         size: indexData.byteLength,
@@ -981,37 +1026,44 @@ async function main() {
     writeArrayU32.set(indexData);
     indexBuffer.unmap();
 
-    const pvmMatrixBufferDescGPU: GPUBufferDescriptor = {
-        size: new Matrix4x4().byteLength(),
+    const transformBufferGPUDesc: GPUBufferDescriptor = {
+        size: 512,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         mappedAtCreation: false,
     };
-    const transformBufferGPU = device.createBuffer(pvmMatrixBufferDescGPU);
+    const transformBufferGPU = device.createBuffer(transformBufferGPUDesc);
 
-    const wallTextureData = await downloadImage("../textures/wall.jpg");
+    const wallTextureData = await downloadImageWithMipmaps("../textures/wall");
+
     const wallTextureDescriptor: GPUTextureDescriptor = {
-        size: {
-            width: wallTextureData.width,
-            height: wallTextureData.height
-        },
+        size: [ wallTextureData[0].width, wallTextureData[1].height ],
+        mipLevelCount: wallTextureData.length,
         format: "rgba8unorm",
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
     };
     const wallTexture = device.createTexture(wallTextureDescriptor);
-    device.queue.copyExternalImageToTexture(
-    {
-        source: wallTextureData
-    },
-    {
-        texture: wallTexture
-    }, wallTextureDescriptor.size);
+    for (let i = 0; i < wallTextureData.length; ++i) {
+        let newWidth = (wallTextureDescriptor.size as Array<number>)[0] >> i;
+        let newHeight = (wallTextureDescriptor.size as Array<number>)[1] >> i;
+
+        if (!newWidth) {
+            newWidth = 1;
+        }
+        if (!newHeight) {
+            newHeight = 1;
+        }
+        device.queue.copyExternalImageToTexture({source: wallTextureData[i]},
+                                                {texture: wallTexture, mipLevel: i},
+                                                [ newWidth, newHeight ]);
+    }
 
     const wallTextureSamplerDesc: GPUSamplerDescriptor = {
         addressModeU: "repeat",
         addressModeV: "repeat",
         magFilter: "linear",
         minFilter: "linear",
-        mipmapFilter: "linear"
+        mipmapFilter: "linear",
+        maxAnisotropy: 4
     };
     const wallTextureSampler = device.createSampler(wallTextureSamplerDesc);
 
@@ -1028,6 +1080,10 @@ async function main() {
             binding: 2,
             visibility: GPUShaderStage.FRAGMENT,
             sampler: {}
+        }, {
+            binding: 3,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: {}
         }]
     };
     const uniformGroup0Layout = device.createBindGroupLayout(uniformGroup0LayoutDesc);
@@ -1036,6 +1092,7 @@ async function main() {
         entries: [{
             binding: 0,
             resource: {
+                offset: 0,
                 buffer: transformBufferGPU
             }
         }, {
@@ -1044,6 +1101,12 @@ async function main() {
         }, {
             binding: 2,
             resource: wallTextureSampler
+        }, {
+            binding: 3,
+            resource: {
+                offset: 256,
+                buffer: transformBufferGPU
+            }
         }]
     });
 
@@ -1101,22 +1164,128 @@ async function main() {
 
     const pipeline = await device.createRenderPipelineAsync(pipelineDesc);
 
-    const dt = genDeltaTimeComputer();
-    let tick = 0.0;
-
     const gui = new dat.GUI({ autoPlace: false });
-    document.querySelector("#gui")?.append(gui.domElement);
+    const guiElem = document.querySelector("#gui") as HTMLElement;
+    ASSERT(!!guiElem, "#gui doesn't exist");
+    guiElem.append(gui.domElement);
 
-    const colorsFolder = gui.addFolder("Colors");
-    const backgroundColorState = {
-        backgroundColor: [10, 10, 20]
+    const engineFolder = gui.addFolder("Engine");
+    const engineState = {
+        clearColor: [10, 10, 20]
     };
-    colorsFolder.addColor(backgroundColorState, "backgroundColor")
-    colorsFolder.open();
+    engineFolder.addColor(engineState, "clearColor")
+    engineFolder.open();
 
+    const performanceFolder = gui.addFolder("Performance");
+    const performanceState = {
+        ms: 0,
+        fps: 0,
+        totalTimePassed: 0,
+        delay: 1000,
+        frameCount: 0,
+        totalRenderpass: 0,
+        renderpass: 0,
+        update: function(dt: number) {
+            this.frameCount += 1;
+            this.totalTimePassed += dt;
+            if (this.totalTimePassed >= this.delay) {
+                this.ms = this.totalTimePassed / this.frameCount;
+                this.fps = 1000.0 / this.ms;
+                this.renderpass = this.totalRenderpass / this.frameCount;
+
+                this.totalTimePassed = 0;
+                this.totalRenderpass = 0;
+                this.frameCount = 0;
+            }
+        }
+    };
+    performanceFolder.add(performanceState, "ms").step(0.00001).listen();
+    performanceFolder.add(performanceState, "fps").step(0.00001).listen();
+    performanceFolder.add(performanceState, "renderpass").step(0.00001).listen();
+    performanceFolder.add(performanceState, "delay");
+    performanceFolder.open();
+
+    const cameraFolder = gui.addFolder("Camera");
+    const cameraState = {
+        position: new Vector3(0.0, 0.0, 2.0),
+        rotation: new Vector3(0.0, 0.0, 0.0),
+        fovy: Math.PI / 2,
+    };
+
+    addVec3ToGUIFolder({
+        parentFolder: cameraFolder,
+        folderName: "Position",
+        vec3: cameraState.position,
+        min: -10.0,
+        max: 10.0,
+        step: 0.01
+    });
+
+    addVec3ToGUIFolder({
+        parentFolder: cameraFolder,
+        folderName: "Rotation",
+        vec3: cameraState.rotation,
+        min: -Math.PI / 2,
+        max: Math.PI / 2,
+        step: 0.01
+    });
+    cameraFolder.add(cameraState, "fovy", Math.PI / 10, Math.PI, 0.01);
+    cameraFolder.open();
+
+    const modelFolder = gui.addFolder("Model");
+    const modelState = {
+        position: new Vector3(0, -3, 0),
+        rotation: new Vector3(Math.PI / 2, 0, 0),
+        scale: new Vector3(100.0, 100.0, 100.0),
+        texcoordMultiplierFactor: 20,
+    };
+    addVec3ToGUIFolder({
+        parentFolder: modelFolder,
+        folderName: "Position",
+        vec3: modelState.position,
+        min: -10.0,
+        max: 10.0,
+        step: 0.01
+    });
+    addVec3ToGUIFolder({
+        parentFolder: modelFolder,
+        folderName: "Rotation",
+        vec3: modelState.rotation,
+        min: 0.0,
+        max: Math.PI * 2.0,
+        step: 0.01
+    });
+    addVec3ToGUIFolder({
+        parentFolder: modelFolder,
+        folderName: "Scale",
+        vec3: modelState.scale,
+        min: 0.0,
+        max: 10.0,
+        step: 0.01
+    });
+    modelFolder.add(modelState, "texcoordMultiplierFactor", 1.0, 50.0, 0.01);
+    modelFolder.open();
+
+    const querySetDesc: GPUQuerySetDescriptor = {
+        type: "timestamp",
+        count: 2
+    };
+    const querySet = device.createQuerySet(querySetDesc);
+
+    const queryResolveBufferDesc: GPUBufferDescriptor = {
+        size: 2 * Float64Array.BYTES_PER_ELEMENT,
+        usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC
+    };
+    const queryResolveBuffer = device.createBuffer(queryResolveBufferDesc);
+
+    const queryResultBufferDesc: GPUBufferDescriptor = {
+        size: 2 * Float64Array.BYTES_PER_ELEMENT,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    };
+    const queryResultBuffer = device.createBuffer(queryResultBufferDesc);
+
+    const dt = genDeltaTimeComputer();
     const render = async () => {
-        tick += dt() * 0.001;
-
         resizeCanvas(canvas, (width: number, height: number) => {
             depthTexture.destroy();
             depthTextureDesc.size = [ width, height, 1 ];
@@ -1129,22 +1298,34 @@ async function main() {
             msaaTextureView = msaaTexture.createView();
         });
 
-        const projectionMatrix = Matrix4x4.GenPerspective(Math.PI / 2,
+        performanceState.update(dt());
+
+        const projectionMatrix = Matrix4x4.GenPerspective(cameraState.fovy,
                                                           canvas.width / canvas.height,
                                                           1.0, 0.0);
 
-        const viewMatrix = Matrix4x4.GenView(new Vector3(0.0, 0.0, 2.0),
-                                             new Vector3(0, 0, 0));
+        const viewMatrix = Matrix4x4.GenView(cameraState.position,
+                                             cameraState.rotation);
 
-        const translationMatrix = Matrix4x4.GenTranslation(new Vector3(0.0, 0.0, 0.0));
-        const rotationMatrix = Matrix4x4.GenRotationZ(tick);
-        const scaleMatrix = Matrix4x4.GenScale(new Vector3(3, 3, 3));
+        const translationMatrix = Matrix4x4.GenTranslation(modelState.position);
+        const rotationMatrix = Matrix4x4.GenRotationXYZ(modelState.rotation);
+        const scaleMatrix = Matrix4x4.GenScale(modelState.scale);
 
         const pvmMatrix = projectionMatrix.mul(viewMatrix)
                                           .mul(translationMatrix)
                                           .mul(rotationMatrix)
                                           .mul(scaleMatrix);
-        device.queue.writeBuffer(transformBufferGPU, 0, pvmMatrix.toFloat32Array());
+
+        const texcoordMultiplierFactor = modelState.texcoordMultiplierFactor;
+        const texcoordMultiplier = new Vector2(texcoordMultiplierFactor,
+                                               texcoordMultiplierFactor);
+
+        device.queue.writeBuffer(transformBufferGPU,
+                                 0,
+                                 pvmMatrix.toFloat32Array() as GPUAllowSharedBufferSource);
+        device.queue.writeBuffer(transformBufferGPU,
+                                 256,
+                                 texcoordMultiplier.toFloat32Array() as GPUAllowSharedBufferSource);
 
         const colorTexture = ctx.getCurrentTexture();
         const colorTextureView = colorTexture.createView();
@@ -1152,9 +1333,9 @@ async function main() {
         const colorAttachment: GPURenderPassColorAttachment = {
             view: msaaTextureView,
             resolveTarget: colorTextureView,
-            clearValue: { r: backgroundColorState.backgroundColor[0] / 255.0,
-                          g: backgroundColorState.backgroundColor[1] / 255.0,
-                          b: backgroundColorState.backgroundColor[2] / 255.0,
+            clearValue: { r: engineState.clearColor[0] / 255.0,
+                          g: engineState.clearColor[1] / 255.0,
+                          b: engineState.clearColor[2] / 255.0,
                           a: 1.0 },
             loadOp: "clear",
             storeOp: "store",
@@ -1170,6 +1351,11 @@ async function main() {
         const renderpassDesc: GPURenderPassDescriptor = {
             colorAttachments: [colorAttachment],
             depthStencilAttachment: depthAttachment,
+            timestampWrites: {
+                querySet: querySet,
+                beginningOfPassWriteIndex: 0,
+                endOfPassWriteIndex: 1 
+            }
         };
 
         const commandEncoder = device.createCommandEncoder();
@@ -1179,10 +1365,25 @@ async function main() {
         renderpass.setBindGroup(0, uniformGroup0);
         renderpass.setVertexBuffer(0, vertexBuffer);
         renderpass.setIndexBuffer(indexBuffer, "uint32");
-        renderpass.drawIndexed(3);
+        renderpass.drawIndexed(indexData.length);
         renderpass.end();
+        commandEncoder.resolveQuerySet(querySet,
+                                       0,
+                                       querySet.count,
+                                       queryResolveBuffer,
+                                       0);
+        if (queryResultBuffer.mapState === "unmapped") {
+            commandEncoder.copyBufferToBuffer(queryResolveBuffer, queryResultBuffer);
+        }
 
         device.queue.submit([commandEncoder.finish()]);
+        if (queryResultBuffer.mapState === "unmapped") {
+            queryResultBuffer.mapAsync(GPUMapMode.READ).then(() => {
+                const result = new BigInt64Array(queryResultBuffer.getMappedRange());
+                performanceState.totalRenderpass += Number(result[1] - result[0]) * 1e-6;
+                queryResultBuffer.unmap();
+            });
+        }
 
         requestAnimationFrame(render);
     };
