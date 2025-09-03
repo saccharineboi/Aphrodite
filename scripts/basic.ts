@@ -206,6 +206,11 @@ async function main() {
     engineFolder.addColor(engineState, "clearColor")
     engineFolder.open();
 
+    const fpsElem = document.querySelector("#fps");
+    if (!fpsElem) {
+        throw new Error("Couldn't find FPS element");
+    }
+
     const performanceFolder = gui.addFolder("Performance");
     const performanceState = {
         ms: 0,
@@ -226,6 +231,8 @@ async function main() {
                 this.totalTimePassed = 0;
                 this.totalRenderpass = 0;
                 this.frameCount = 0;
+
+                fpsElem.innerHTML = this.fps.toFixed(0);
             }
         }
     };

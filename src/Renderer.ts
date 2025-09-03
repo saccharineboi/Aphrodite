@@ -119,7 +119,7 @@ export class Renderer {
 
     public createBuffer(bufferDesc: GPUBufferDescriptor): GPUBuffer {
         return this.device.createBuffer(bufferDesc);
-    } 
+    }
 
     public createBufferWithData(bufferDesc: GPUBufferDescriptor,
                                 data: BufferDataType): GPUBuffer {
@@ -240,7 +240,7 @@ export class Renderer {
         if (!adapter) {
             throw new Error("Aphrodite: Failed to request an adapter");
         }
-        
+
         const deviceDescriptor: GPUDeviceDescriptor = {
             requiredFeatures: [ "timestamp-query" ]
         };

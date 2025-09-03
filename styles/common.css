@@ -19,8 +19,8 @@ html, body {
 
 #gui {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 20px;
+    left: 20px;
 }
 
 .container {
@@ -40,4 +40,15 @@ html, body {
     color: black;
     font-size: 16pt;
     border-radius: 10px;
+}
+
+#fps {
+    position: absolute;
+    margin: 20px;
+    top: 0;
+    right: 0;
+    color: lightgreen;
+    font-weight: bold;
+    font-size: 24pt;
+    font-family: 'Courier New', Courier, monospace;
 }
