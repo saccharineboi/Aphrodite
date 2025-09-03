@@ -6,9 +6,10 @@
 
 html, body {
     overflow: hidden;
+    background-color: black;
 }
 
-canvas#aphrodite-render {
+#aphrodite-render {
     background-color: gray;
     width: 100%;
     height: 100%;
@@ -16,8 +17,27 @@ canvas#aphrodite-render {
     outline: none;
 }
 
-div#gui {
+#gui {
     position: absolute;
     top: 0;
     left: 0;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    display: none;
+}
+
+#error {
+    padding: 10px;
+    background-color: white;
+    text-align: center;
+    color: black;
+    font-size: 16pt;
+    border-radius: 10px;
 }

@@ -6,10 +6,13 @@
     <meta name="description" content="Aphrodite: WebGPU renderer">
     <title>Aphrodite</title>
     <link rel="stylesheet" href="../styles/common.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js" integrity="sha512-WoO4Ih0CDOSLYafy22wZD/mcJ7k0ESLqtQsFa6zFKnEUrbtuGU+GkLtVhgt93xa2qewG5gKEC6CWlN8OaCTSVg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="../lib/dat.gui.min.js"></script>
     <script type="module" src="../build/scripts/basic.js"></script>
 </head>
 <body>
+    <div class="container">
+        <div id="error"></div>
+    </div>
     <div id="gui"></div>
     <canvas tabindex="0" id="aphrodite-canvas"></canvas>
 </body>

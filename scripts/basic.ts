@@ -390,8 +390,11 @@ async function main() {
             msaaTextureView = msaaTexture.createView();
         });
 
-        if (input.key("KeyW")) {
+        if (input.isPressed("KeyW")) {
             console.log("W is pressed");
+        }
+        else if (input.isPressed("KeyS")) {
+            console.log("S is pressed");
         }
 
         const deltaTime = dt();
@@ -451,7 +454,7 @@ async function main() {
             timestampWrites: {
                 querySet: querySet,
                 beginningOfPassWriteIndex: 0,
-                endOfPassWriteIndex: 1 
+                endOfPassWriteIndex: 1
             }
         };
 
@@ -487,4 +490,13 @@ async function main() {
     requestAnimationFrame(render);
 }
 
-main();
+try {
+    main();
+}
+catch (e: any) {
+    const errorElem = document.querySelector("#error");
+    if (errorElem) {
+        (errorElem as HTMLDivElement).style.display = "block";
+        errorElem.innerHTML = e.toString();
+    }
+}
