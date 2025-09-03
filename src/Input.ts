@@ -1,4 +1,4 @@
-// type CodeType = "KeyW" | "KeyS" | "KeyA" | "KeyD";
+type CodeType = "KeyW" | "KeyS" | "KeyA" | "KeyD";
 
 export class Input {
     private state: Map<string, boolean>;
@@ -14,7 +14,7 @@ export class Input {
         elem.addEventListener("click", () => elem.focus());
     }
 
-    public key(code: string): boolean {
+    public isPressed(code: CodeType): boolean {
         const res = this.state.get(code);
         return res ? true : false;
     }
