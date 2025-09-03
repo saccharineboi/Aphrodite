@@ -1,58 +1,20 @@
 /// <reference types="dat.gui" />
 declare const dat: typeof import("dat.gui");
 
-import { resizeCanvas,
-         downloadText,
-         downloadImageWithMipmaps,
-         addVec3ToGUIFolder,
+import { addVec3ToGUIFolder,
          genDeltaTimeComputer } from "../src/Util.js";
+import { Renderer } from "../src/Renderer.js";
 import { Vector2 } from "../src/Vector2.js";
 import { Vector3 } from "../src/Vector3.js";
 import { Matrix4x4 } from "../src/Matrix4x4.js";
 import { Input } from "../src/Input.js";
 
 async function main() {
-    if (!navigator.gpu) {
-        throw new Error("WebGPU is not available");
-    }
 
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) {
-        throw new Error("Failed to request an adapter");
-    }
+    const renderer = await Renderer.Init("aphrodite-output");
+    renderer.resizeCanvas(innerWidth, innerHeight);
 
-    const deviceDescriptor: GPUDeviceDescriptor = {
-        requiredFeatures: [
-            "timestamp-query"
-        ]
-    };
-    const device = await adapter.requestDevice(deviceDescriptor);
-    if (!device) {
-        throw new Error("Failed to request a device");
-    }
-
-    const canvas = document.querySelector("#aphrodite-canvas") as undefined | HTMLCanvasElement;
-    if (!canvas) {
-        throw new Error("Canvas couldn't be found");
-    }
-    resizeCanvas(canvas);
-
-    const ctx = canvas.getContext("webgpu");
-    if (!ctx) {
-        throw new Error("getContext() failed");
-    }
-
-    const canvasConfig: GPUCanvasConfiguration = {
-        device: device,
-        format: navigator.gpu.getPreferredCanvasFormat(),
-        usage: GPUTextureUsage.RENDER_ATTACHMENT,
-        alphaMode: "opaque"
-    };
-    ctx.configure(canvasConfig);
-
-    const basicShaderSource = await downloadText("../shaders/basic.wgsl");
-    const basicShaderDesc: GPUShaderModuleDescriptor = { code: basicShaderSource };
-    const basicShaderModule = device.createShaderModule(basicShaderDesc)
+    const basicShaderModule = await renderer.createShaderModule("../shaders/basic.wgsl");
 
     const colorState: GPUColorTargetState = {
         format: "bgra8unorm"
@@ -95,10 +57,8 @@ async function main() {
         mappedAtCreation: true
     };
 
-    const vertexBuffer = device.createBuffer(vertexBufferDesc);
-    let writeArray = new Float32Array(vertexBuffer.getMappedRange());
-    writeArray.set(vertexData);
-    vertexBuffer.unmap();
+    const vertexBuffer = renderer.createBufferWithData(vertexBufferDesc,
+                                                       vertexData);
 
     const indexData = new Uint32Array([ 0, 2, 1, 0, 3, 2 ]);
 
@@ -108,41 +68,21 @@ async function main() {
         mappedAtCreation: true
     };
 
-    const indexBuffer = device.createBuffer(indexBufferDesc);
-    const writeArrayU32 = new Uint32Array(indexBuffer.getMappedRange());
-    writeArrayU32.set(indexData);
-    indexBuffer.unmap();
+    const indexBuffer = renderer.createBufferWithData(indexBufferDesc,
+                                                      indexData);
 
     const transformBufferGPUDesc: GPUBufferDescriptor = {
         size: 512,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         mappedAtCreation: false,
     };
-    const transformBufferGPU = device.createBuffer(transformBufferGPUDesc);
+    const transformBufferGPU = renderer.createBuffer(transformBufferGPUDesc);
 
-    const wallTextureData = await downloadImageWithMipmaps("../textures/wall");
-
-    const wallTextureDescriptor: GPUTextureDescriptor = {
-        size: [ wallTextureData[0].width, wallTextureData[1].height ],
-        mipLevelCount: wallTextureData.length,
-        format: "rgba8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
-    };
-    const wallTexture = device.createTexture(wallTextureDescriptor);
-    for (let i = 0; i < wallTextureData.length; ++i) {
-        let newWidth = (wallTextureDescriptor.size as Array<number>)[0] >> i;
-        let newHeight = (wallTextureDescriptor.size as Array<number>)[1] >> i;
-
-        if (!newWidth) {
-            newWidth = 1;
-        }
-        if (!newHeight) {
-            newHeight = 1;
-        }
-        device.queue.copyExternalImageToTexture({source: wallTextureData[i]},
-                                                {texture: wallTexture, mipLevel: i},
-                                                [ newWidth, newHeight ]);
-    }
+    const wallTexture = await renderer.createMipmappedTexture("../textures/wall",
+                                                              "rgba8unorm",
+                                                              GPUTextureUsage.COPY_DST |
+                                                              GPUTextureUsage.TEXTURE_BINDING |
+                                                              GPUTextureUsage.RENDER_ATTACHMENT);
 
     const wallTextureSamplerDesc: GPUSamplerDescriptor = {
         addressModeU: "repeat",
@@ -152,7 +92,7 @@ async function main() {
         mipmapFilter: "linear",
         maxAnisotropy: 4
     };
-    const wallTextureSampler = device.createSampler(wallTextureSamplerDesc);
+    const wallTextureSampler = renderer.createSampler(wallTextureSamplerDesc);
 
     const uniformGroup0LayoutDesc: GPUBindGroupLayoutDescriptor = {
         entries: [{
@@ -173,8 +113,8 @@ async function main() {
             buffer: {}
         }]
     };
-    const uniformGroup0Layout = device.createBindGroupLayout(uniformGroup0LayoutDesc);
-    const uniformGroup0 = device.createBindGroup({
+    const uniformGroup0Layout = renderer.createBindGroupLayout(uniformGroup0LayoutDesc);
+    const uniformGroup0 = renderer.createBindGroup({
         layout: uniformGroup0Layout,
         entries: [{
             binding: 0,
@@ -198,29 +138,29 @@ async function main() {
     });
 
     const msaaTextureDesc: GPUTextureDescriptor = {
-        size: [ canvas.width, canvas.height],
+        size: [ renderer.getCanvasWidth(), renderer.getCanvasHeight()],
         sampleCount: 4,
         format: navigator.gpu.getPreferredCanvasFormat(),
         usage: GPUTextureUsage.RENDER_ATTACHMENT
     };
-    let msaaTexture = device.createTexture(msaaTextureDesc);
+    let msaaTexture = renderer.createTexture(msaaTextureDesc);
     let msaaTextureView = msaaTexture.createView();
 
     const depthTextureDesc: GPUTextureDescriptor = {
-        size: [ canvas.width, canvas.height, 1 ],
+        size: [ renderer.getCanvasWidth(), renderer.getCanvasHeight(), 1 ],
         sampleCount: 4,
         dimension: "2d",
         format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT
     };
 
-    let depthTexture = device.createTexture(depthTextureDesc);
+    let depthTexture = renderer.createTexture(depthTextureDesc);
     let depthTextureView = depthTexture.createView();
 
     const pipelineLayoutDesc: GPUPipelineLayoutDescriptor = {
         bindGroupLayouts: [uniformGroup0Layout],
     };
-    const pipelineLayout = device.createPipelineLayout(pipelineLayoutDesc);
+    const pipelineLayout = renderer.createPipelineLayout(pipelineLayoutDesc);
 
     const pipelineDesc: GPURenderPipelineDescriptor = {
         layout: pipelineLayout,
@@ -249,7 +189,7 @@ async function main() {
         }
     };
 
-    const pipeline = await device.createRenderPipelineAsync(pipelineDesc);
+    const pipeline = await renderer.createRenderPipeline(pipelineDesc);
 
     const gui = new dat.GUI({ autoPlace: false });
     const guiElem = document.querySelector("#gui") as HTMLElement;
@@ -350,58 +290,42 @@ async function main() {
         folderName: "Scale",
         vec3: modelState.scale,
         min: 0.0,
-        max: 10.0,
+        max: 100.0,
         step: 0.01
     });
     modelFolder.add(modelState, "texcoordMultiplierFactor", 1.0, 50.0, 0.01);
     modelFolder.open();
 
-    const querySetDesc: GPUQuerySetDescriptor = {
-        type: "timestamp",
-        count: 2
-    };
-    const querySet = device.createQuerySet(querySetDesc);
-
-    const queryResolveBufferDesc: GPUBufferDescriptor = {
-        size: 2 * Float64Array.BYTES_PER_ELEMENT,
-        usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC
-    };
-    const queryResolveBuffer = device.createBuffer(queryResolveBufferDesc);
-
-    const queryResultBufferDesc: GPUBufferDescriptor = {
-        size: 2 * Float64Array.BYTES_PER_ELEMENT,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-    };
-    const queryResultBuffer = device.createBuffer(queryResultBufferDesc);
-
-    const input = new Input(canvas);
+    const rendererQuery = renderer.createRendererQuery(2);
+    const inputHandler = renderer.createInputHandler();
 
     const dt = genDeltaTimeComputer();
     const render = async () => {
-        resizeCanvas(canvas, (width: number, height: number) => {
+        renderer.resizeCanvas(innerWidth, innerHeight, () => {
             depthTexture.destroy();
-            depthTextureDesc.size = [ width, height, 1 ];
-            depthTexture = device.createTexture(depthTextureDesc);
+            depthTextureDesc.size = [ innerWidth, innerHeight, 1 ];
+            depthTexture = renderer.createTexture(depthTextureDesc);
             depthTextureView = depthTexture.createView();
 
             msaaTexture.destroy();
-            msaaTextureDesc.size = [ width, height ];
-            msaaTexture = device.createTexture(msaaTextureDesc);
+            msaaTextureDesc.size = [ innerWidth, innerHeight ];
+            msaaTexture = renderer.createTexture(msaaTextureDesc);
             msaaTextureView = msaaTexture.createView();
         });
-
-        if (input.isPressed("KeyW")) {
+        if (inputHandler.isPressed("KeyW")) {
             console.log("W is pressed");
         }
-        else if (input.isPressed("KeyS")) {
+        else if (inputHandler.isPressed("KeyS")) {
             console.log("S is pressed");
         }
 
         const deltaTime = dt();
         performanceState.update(deltaTime);
 
+        const canvasWidth = renderer.getCanvasWidth();
+        const canvasHeight = renderer.getCanvasHeight();
         const projectionMatrix = Matrix4x4.GenPerspective(cameraState.fovy,
-                                                          canvas.width / canvas.height,
+                                                          canvasWidth / canvasHeight,
                                                           1.0, 0.0);
 
         const viewMatrix = Matrix4x4.GenView(cameraState.position,
@@ -420,14 +344,10 @@ async function main() {
         const texcoordMultiplier = new Vector2(texcoordMultiplierFactor,
                                                texcoordMultiplierFactor);
 
-        device.queue.writeBuffer(transformBufferGPU,
-                                 0,
-                                 pvmMatrix.toFloat32Array() as GPUAllowSharedBufferSource);
-        device.queue.writeBuffer(transformBufferGPU,
-                                 256,
-                                 texcoordMultiplier.toFloat32Array() as GPUAllowSharedBufferSource);
+        renderer.writeMatrix4x4ToBuffer(transformBufferGPU, 0, pvmMatrix);
+        renderer.writeVector2ToBuffer(transformBufferGPU, 256, texcoordMultiplier);
 
-        const colorTexture = ctx.getCurrentTexture();
+        const colorTexture = renderer.getCanvasTexture();
         const colorTextureView = colorTexture.createView();
 
         const colorAttachment: GPURenderPassColorAttachment = {
@@ -452,38 +372,27 @@ async function main() {
             colorAttachments: [colorAttachment],
             depthStencilAttachment: depthAttachment,
             timestampWrites: {
-                querySet: querySet,
+                querySet: rendererQuery.getQuerySet(),
                 beginningOfPassWriteIndex: 0,
                 endOfPassWriteIndex: 1
             }
         };
 
-        const commandEncoder = device.createCommandEncoder();
+        const commandEncoder = renderer.createCommandEncoder();
         const renderpass = commandEncoder.beginRenderPass(renderpassDesc);
-        renderpass.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
+        renderpass.setViewport(0, 0, renderer.getCanvasWidth(), renderer.getCanvasHeight(), 0.0, 1.0);
         renderpass.setPipeline(pipeline);
         renderpass.setBindGroup(0, uniformGroup0);
         renderpass.setVertexBuffer(0, vertexBuffer);
         renderpass.setIndexBuffer(indexBuffer, "uint32");
         renderpass.drawIndexed(indexData.length);
         renderpass.end();
-        commandEncoder.resolveQuerySet(querySet,
-                                       0,
-                                       querySet.count,
-                                       queryResolveBuffer,
-                                       0);
-        if (queryResultBuffer.mapState === "unmapped") {
-            commandEncoder.copyBufferToBuffer(queryResolveBuffer, queryResultBuffer);
-        }
 
-        device.queue.submit([commandEncoder.finish()]);
-        if (queryResultBuffer.mapState === "unmapped") {
-            queryResultBuffer.mapAsync(GPUMapMode.READ).then(() => {
-                const result = new BigInt64Array(queryResultBuffer.getMappedRange());
-                performanceState.totalRenderpass += Number(result[1] - result[0]) * 1e-6;
-                queryResultBuffer.unmap();
-            });
-        }
+        rendererQuery.resolve(commandEncoder);
+        renderer.submitCommandBuffers([ commandEncoder.finish() ]);
+        rendererQuery.map((value: BigInt) => {
+            performanceState.totalRenderpass += Number(value) * 1e-6;
+        });
 
         requestAnimationFrame(render);
     };
