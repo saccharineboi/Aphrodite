@@ -1,12 +1,15 @@
+/// <reference types="dat.gui" />
+declare const dat: typeof import("dat.gui");
+
 import { resizeCanvas,
          downloadText,
          downloadImageWithMipmaps,
          addVec3ToGUIFolder,
-         genDeltaTimeComputer } from "@aphrodite/Util";
-import { Vector2 } from "@aphrodite/Vector2";
-import { Vector3 } from "@aphrodite/Vector3";
-import { Matrix4x4 } from "@aphrodite/Matrix4x4";
-import dat from "dat.gui";
+         genDeltaTimeComputer } from "../src/Util.js";
+import { Vector2 } from "../src/Vector2.js";
+import { Vector3 } from "../src/Vector3.js";
+import { Matrix4x4 } from "../src/Matrix4x4.js";
+import { Input } from "../src/Input.js";
 
 async function main() {
     if (!navigator.gpu) {
@@ -371,6 +374,8 @@ async function main() {
     };
     const queryResultBuffer = device.createBuffer(queryResultBufferDesc);
 
+    const input = new Input(canvas);
+
     const dt = genDeltaTimeComputer();
     const render = async () => {
         resizeCanvas(canvas, (width: number, height: number) => {
@@ -385,7 +390,12 @@ async function main() {
             msaaTextureView = msaaTexture.createView();
         });
 
-        performanceState.update(dt());
+        if (input.key("KeyW")) {
+            console.log("W is pressed");
+        }
+
+        const deltaTime = dt();
+        performanceState.update(deltaTime);
 
         const projectionMatrix = Matrix4x4.GenPerspective(cameraState.fovy,
                                                           canvas.width / canvas.height,

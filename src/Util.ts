@@ -1,4 +1,4 @@
-import { Vector3 } from "Vector3";
+import { Vector3 } from "./Vector3.js";
 
 export const EPSILON = 1e-6;
 

@@ -15,10 +15,7 @@
     "types": ["@webgpu/types",
               "@types/mocha",
               "@types/dat.gui"],
-    "baseUrl": "./",
-    "paths": {
-        "@aphrodite/*": ["src/*"]
-    }
+    "baseUrl": "./"
   },
   "exclude": [
       "./node_modules/**/*",

@@ -1,6 +1,6 @@
-import { EPSILON } from "Util";
-import { Vector3 } from "Vector3";
-import { Vector4 } from "Vector4";
+import { EPSILON } from "./Util.js";
+import { Vector3 } from "./Vector3.js";
+import { Vector4 } from "./Vector4.js";
 
 export class Matrix4x4 {
     public constructor(public col0: Vector4 = Vector4.X(),

@@ -1,5 +1,5 @@
 import { EPSILON,
-         areFloatsEqual } from "Util";
+         areFloatsEqual } from "./Util.js";
 
 export class Vector3 {
     public constructor(public x: number = 0.0,
