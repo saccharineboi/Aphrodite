@@ -13,7 +13,7 @@ export type TextureUsageType = GPUTextureUsage["TEXTURE_BINDING"] |
                                GPUTextureUsage["COPY_DST"] |
                                GPUTextureUsage["RENDER_ATTACHMENT"];
 
-export class RendererQuery {
+class TimestampQuery {
     private device: GPUDevice;
     private querySet: GPUQuerySet;
     private queryResolveBuffer: GPUBuffer;
@@ -38,7 +38,9 @@ export class RendererQuery {
         if (this.queryResultBuffer.mapState === "unmapped") {
             this.queryResultBuffer.mapAsync(GPUMapMode.READ).then(() => {
                 const result = new BigInt64Array(this.queryResultBuffer.getMappedRange());
-                callback(result[1] - result[0]);
+                const resultBegin = result[0] ?? BigInt(0);
+                const resultEnd = result[1] ?? BigInt(0);
+                callback(resultEnd - resultBegin);
                 this.queryResultBuffer.unmap();
             })
         }
@@ -69,14 +71,13 @@ export class RendererQuery {
 
 export class Renderer {
 
-    private constructor(private adapter: GPUAdapter,
-                        private device: GPUDevice,
+    private constructor(private device: GPUDevice,
                         private canvas: HTMLCanvasElement,
                         private ctx: GPUCanvasContext)
     { }
 
-    public createRendererQuery(count: number): RendererQuery {
-        return new RendererQuery(this.device, count);
+    public createTimestampQuery(count: number): TimestampQuery {
+        return new TimestampQuery(this.device, count);
     }
 
     public createInputHandler(): Input {
@@ -189,16 +190,23 @@ export class Renderer {
                                         format: GPUTextureFormat,
                                         usage: TextureUsageType): Promise<GPUTexture> {
         const data = await downloadImageWithMipmaps(path);
+        if (!data[0]) {
+            throw new Error("Aphrodite: texture base doesn't exist");
+        }
+
+        const baseWidth = data[0].width;
+        const baseHeight = data[0].height;
+
         const descriptor: GPUTextureDescriptor = {
-            size: [ data[0].width, data[0].height ],
+            size: [ baseWidth, baseHeight ],
             mipLevelCount: data.length,
             format: format,
             usage: usage
         };
         const texture = this.device.createTexture(descriptor);
         data.forEach((bitmap: ImageBitmap, index: number) => {
-            let width = (descriptor.size as Array<number>)[0] >> index;
-            let height = (descriptor.size as Array<number>)[1] >> index;
+            let width = baseWidth >> index;
+            let height = baseHeight >> index;
 
             if (!width) {
                 width = 1;
@@ -267,6 +275,6 @@ export class Renderer {
         };
         ctx.configure(canvasConfig);
 
-        return new Renderer(adapter, device, canvas, ctx);
+        return new Renderer(device, canvas, ctx);
     }
 };

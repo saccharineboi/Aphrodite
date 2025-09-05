@@ -7,10 +7,11 @@ import { Renderer } from "../src/Renderer.js";
 import { Vector2 } from "../src/Vector2.js";
 import { Vector3 } from "../src/Vector3.js";
 import { Matrix4x4 } from "../src/Matrix4x4.js";
-import { Input } from "../src/Input.js";
+
+const MSAA_SAMPLES = 4;
+const QUERY_BEGIN_AND_END = 2;
 
 async function main() {
-
     const renderer = await Renderer.Init("aphrodite-output");
     renderer.resizeCanvas(innerWidth, innerHeight);
 
@@ -57,8 +58,7 @@ async function main() {
         mappedAtCreation: true
     };
 
-    const vertexBuffer = renderer.createBufferWithData(vertexBufferDesc,
-                                                       vertexData);
+    const vertexBuffer = renderer.createBufferWithData(vertexBufferDesc, vertexData);
 
     const indexData = new Uint32Array([ 0, 2, 1, 0, 3, 2 ]);
 
@@ -68,8 +68,7 @@ async function main() {
         mappedAtCreation: true
     };
 
-    const indexBuffer = renderer.createBufferWithData(indexBufferDesc,
-                                                      indexData);
+    const indexBuffer = renderer.createBufferWithData(indexBufferDesc, indexData);
 
     const transformBufferGPUDesc: GPUBufferDescriptor = {
         size: 512,
@@ -114,7 +113,8 @@ async function main() {
         }]
     };
     const uniformGroup0Layout = renderer.createBindGroupLayout(uniformGroup0LayoutDesc);
-    const uniformGroup0 = renderer.createBindGroup({
+
+    const uniformGroup0Desc: GPUBindGroupDescriptor = {
         layout: uniformGroup0Layout,
         entries: [{
             binding: 0,
@@ -135,11 +135,12 @@ async function main() {
                 buffer: transformBufferGPU
             }
         }]
-    });
+    };
+    const uniformGroup0 = renderer.createBindGroup(uniformGroup0Desc);
 
     const msaaTextureDesc: GPUTextureDescriptor = {
         size: [ renderer.getCanvasWidth(), renderer.getCanvasHeight()],
-        sampleCount: 4,
+        sampleCount: MSAA_SAMPLES,
         format: navigator.gpu.getPreferredCanvasFormat(),
         usage: GPUTextureUsage.RENDER_ATTACHMENT
     };
@@ -148,7 +149,7 @@ async function main() {
 
     const depthTextureDesc: GPUTextureDescriptor = {
         size: [ renderer.getCanvasWidth(), renderer.getCanvasHeight(), 1 ],
-        sampleCount: 4,
+        sampleCount: MSAA_SAMPLES,
         dimension: "2d",
         format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT
@@ -196,7 +197,6 @@ async function main() {
     if (!guiElem) {
         throw new Error("GUI element for dat.gui doesn't exist");
     }
-
     guiElem.append(gui.domElement);
 
     const engineFolder = gui.addFolder("Engine");
@@ -303,7 +303,7 @@ async function main() {
     modelFolder.add(modelState, "texcoordMultiplierFactor", 1.0, 50.0, 0.01);
     modelFolder.open();
 
-    const rendererQuery = renderer.createRendererQuery(2);
+    const rendererQuery = renderer.createTimestampQuery(QUERY_BEGIN_AND_END);
     const inputHandler = renderer.createInputHandler();
 
     const dt = genDeltaTimeComputer();
@@ -360,9 +360,9 @@ async function main() {
         const colorAttachment: GPURenderPassColorAttachment = {
             view: msaaTextureView,
             resolveTarget: colorTextureView,
-            clearValue: { r: engineState.clearColor[0] / 255.0,
-                          g: engineState.clearColor[1] / 255.0,
-                          b: engineState.clearColor[2] / 255.0,
+            clearValue: { r: (engineState.clearColor[0] ?? 0.0) / 255.0,
+                          g: (engineState.clearColor[1] ?? 0.0) / 255.0,
+                          b: (engineState.clearColor[2] ?? 0.0) / 255.0,
                           a: 1.0 },
             loadOp: "clear",
             storeOp: "store",
