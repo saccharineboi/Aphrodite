@@ -303,7 +303,7 @@ async function main() {
     modelFolder.add(modelState, "texcoordMultiplierFactor", 1.0, 50.0, 0.01);
     modelFolder.open();
 
-    const rendererQuery = renderer.createTimestampQuery(QUERY_BEGIN_AND_END);
+    const timestampQuery = renderer.createTimestampQuery(QUERY_BEGIN_AND_END);
     const inputHandler = renderer.createInputHandler();
 
     const dt = genDeltaTimeComputer();
@@ -379,7 +379,7 @@ async function main() {
             colorAttachments: [colorAttachment],
             depthStencilAttachment: depthAttachment,
             timestampWrites: {
-                querySet: rendererQuery.getQuerySet(),
+                querySet: timestampQuery.getQuerySet(),
                 beginningOfPassWriteIndex: 0,
                 endOfPassWriteIndex: 1
             }
@@ -395,9 +395,9 @@ async function main() {
         renderpass.drawIndexed(indexData.length);
         renderpass.end();
 
-        rendererQuery.resolve(commandEncoder);
+        timestampQuery.resolve(commandEncoder);
         renderer.submitCommandBuffers([ commandEncoder.finish() ]);
-        rendererQuery.map((value: BigInt) => {
+        timestampQuery.map((value: BigInt) => {
             performanceState.totalRenderpass += Number(value) * 1e-6;
         });
 
