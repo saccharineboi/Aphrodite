@@ -1,5 +1,4 @@
-import { EPSILON,
-         areFloatsEqual } from "./Util.js";
+import { Util } from "./Util.js";
 
 export class Vector2 {
     public constructor(public x: number = 0.0,
@@ -34,9 +33,9 @@ export class Vector2 {
                                   this.y ]);
     }
 
-    public isEqual(other: Vector2, eps = EPSILON): boolean {
-        return areFloatsEqual(this.x, other.x, eps) &&
-               areFloatsEqual(this.y, other.y, eps);
+    public isEqual(other: Vector2, eps = Util.EPSILON): boolean {
+        return Util.areFloatsEqual(this.x, other.x, eps) &&
+               Util.areFloatsEqual(this.y, other.y, eps);
     }
 
     public isValid(): boolean {
@@ -142,7 +141,7 @@ export class Vector2 {
         const y = this.y;
 
         let sqrlen = x * x + y * y;
-        if (!areFloatsEqual(sqrlen, 0.0)) {
+        if (!Util.areFloatsEqual(sqrlen, 0.0)) {
             sqrlen = 1.0 / Math.sqrt(sqrlen);
             return new Vector2(x * sqrlen,
                                y * sqrlen);

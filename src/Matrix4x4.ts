@@ -1,4 +1,4 @@
-import { EPSILON } from "./Util.js";
+import { Util } from "./Util.js";
 import { Vector3 } from "./Vector3.js";
 import { Vector4 } from "./Vector4.js";
 
@@ -95,7 +95,7 @@ export class Matrix4x4 {
         ]);
     }
 
-    public isEqual(other: Matrix4x4, eps = EPSILON): boolean {
+    public isEqual(other: Matrix4x4, eps = Util.EPSILON): boolean {
         return this.col0.isEqual(other.col0, eps) &&
                this.col1.isEqual(other.col1, eps) &&
                this.col2.isEqual(other.col2, eps) &&

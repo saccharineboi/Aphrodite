@@ -1,5 +1,4 @@
-import { EPSILON,
-         areFloatsEqual } from "./Util.js";
+import { Util } from "./Util.js";
 
 export class Vector4 {
     public constructor(public x: number = 0.0,
@@ -62,11 +61,11 @@ export class Vector4 {
                                   this.w ]);
     }
 
-    public isEqual(other: Vector4, eps = EPSILON): boolean {
-        return areFloatsEqual(this.x, other.x, eps) &&
-               areFloatsEqual(this.y, other.y, eps) &&
-               areFloatsEqual(this.z, other.z, eps) &&
-               areFloatsEqual(this.w, other.w, eps);
+    public isEqual(other: Vector4, eps = Util.EPSILON): boolean {
+        return Util.areFloatsEqual(this.x, other.x, eps) &&
+               Util.areFloatsEqual(this.y, other.y, eps) &&
+               Util.areFloatsEqual(this.z, other.z, eps) &&
+               Util.areFloatsEqual(this.w, other.w, eps);
     }
 
     public isValid(): boolean {
@@ -210,7 +209,7 @@ export class Vector4 {
         const w = this.w;
 
         let sqrlen = x * x + y * y + z * z + w * w;
-        if (!areFloatsEqual(sqrlen, 0.0)) {
+        if (!Util.areFloatsEqual(sqrlen, 0.0)) {
             sqrlen = 1.0 / Math.sqrt(sqrlen);
             return new Vector4(x * sqrlen,
                                y * sqrlen,

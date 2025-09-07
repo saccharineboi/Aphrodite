@@ -1,17 +1,16 @@
-import { downloadText,
-         downloadImageWithMipmaps } from "./Util.js";
+import { Util } from "./Util.js";
 import { Input } from "./Input.js";
 import { Vector2 } from "./Vector2.js";
 import { Vector3 } from "./Vector3.js";
 import { Vector4 } from "./Vector4.js";
 import { Matrix4x4 } from "./Matrix4x4.js";
 
-export type BufferDataType = Float32Array | Uint32Array;
-export type TextureUsageType = GPUTextureUsage["TEXTURE_BINDING"] |
-                               GPUTextureUsage["TEXTURE_BINDING"] |
-                               GPUTextureUsage["COPY_SRC"] |
-                               GPUTextureUsage["COPY_DST"] |
-                               GPUTextureUsage["RENDER_ATTACHMENT"];
+type BufferDataType = Float32Array | Uint32Array;
+type TextureUsageType = GPUTextureUsage["TEXTURE_BINDING"] |
+                        GPUTextureUsage["TEXTURE_BINDING"] |
+                        GPUTextureUsage["COPY_SRC"] |
+                        GPUTextureUsage["COPY_DST"] |
+                        GPUTextureUsage["RENDER_ATTACHMENT"];
 
 class TimestampQuery {
     private device: GPUDevice;
@@ -111,7 +110,7 @@ export class Renderer {
     }
 
     public async createShaderModule(path: string): Promise<GPUShaderModule> {
-        const source = await downloadText(path);
+        const source = await Util.downloadText(path);
         const shaderDesc: GPUShaderModuleDescriptor = {
             code: source
         };
@@ -189,7 +188,7 @@ export class Renderer {
     public async createMipmappedTexture(path: string,
                                         format: GPUTextureFormat,
                                         usage: TextureUsageType): Promise<GPUTexture> {
-        const data = await downloadImageWithMipmaps(path);
+        const data = await Util.downloadImageWithMipmaps(path);
         if (!data[0]) {
             throw new Error("Aphrodite: texture base doesn't exist");
         }
