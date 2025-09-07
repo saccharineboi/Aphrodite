@@ -1,8 +1,7 @@
 /// <reference types="dat.gui" />
 declare const dat: typeof import("dat.gui");
 
-import { addVec3ToGUIFolder,
-         genDeltaTimeComputer } from "../src/Util.js";
+import { Util } from "../src/Util.js";
 import { Renderer } from "../src/Renderer.js";
 import { Vector2 } from "../src/Vector2.js";
 import { Vector3 } from "../src/Vector3.js";
@@ -186,7 +185,7 @@ async function main() {
             format: "depth32float",
         },
         multisample: {
-            count: 4
+            count: MSAA_SAMPLES
         }
     };
 
@@ -249,7 +248,7 @@ async function main() {
         fovy: Math.PI / 2,
     };
 
-    addVec3ToGUIFolder({
+    Util.addVec3ToGUIFolder({
         parentFolder: cameraFolder,
         folderName: "Position",
         vec3: cameraState.position,
@@ -258,7 +257,7 @@ async function main() {
         step: 0.01
     });
 
-    addVec3ToGUIFolder({
+    Util.addVec3ToGUIFolder({
         parentFolder: cameraFolder,
         folderName: "Rotation",
         vec3: cameraState.rotation,
@@ -276,7 +275,7 @@ async function main() {
         scale: new Vector3(100.0, 100.0, 100.0),
         texcoordMultiplierFactor: 20,
     };
-    addVec3ToGUIFolder({
+    Util.addVec3ToGUIFolder({
         parentFolder: modelFolder,
         folderName: "Position",
         vec3: modelState.position,
@@ -284,7 +283,7 @@ async function main() {
         max: 10.0,
         step: 0.01
     });
-    addVec3ToGUIFolder({
+    Util.addVec3ToGUIFolder({
         parentFolder: modelFolder,
         folderName: "Rotation",
         vec3: modelState.rotation,
@@ -292,7 +291,7 @@ async function main() {
         max: Math.PI * 2.0,
         step: 0.01
     });
-    addVec3ToGUIFolder({
+    Util.addVec3ToGUIFolder({
         parentFolder: modelFolder,
         folderName: "Scale",
         vec3: modelState.scale,
@@ -306,7 +305,7 @@ async function main() {
     const timestampQuery = renderer.createTimestampQuery(QUERY_BEGIN_AND_END);
     const inputHandler = renderer.createInputHandler();
 
-    const dt = genDeltaTimeComputer();
+    const dt = Util.genDeltaTimeComputer();
     const render = async () => {
         renderer.resizeCanvas(innerWidth, innerHeight, () => {
             depthTexture.destroy();
@@ -326,8 +325,7 @@ async function main() {
             console.log("S is pressed");
         }
 
-        const deltaTime = dt();
-        performanceState.update(deltaTime);
+        performanceState.update(dt());
 
         const canvasWidth = renderer.getCanvasWidth();
         const canvasHeight = renderer.getCanvasHeight();
