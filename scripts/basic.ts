@@ -1,6 +1,3 @@
-/// <reference types="dat.gui" />
-declare const dat: typeof import("dat.gui");
-
 import { Util } from "../src/Util.js";
 import { Renderer } from "../src/Renderer.js";
 import { Vector2 } from "../src/Vector2.js";
@@ -9,6 +6,7 @@ import { Matrix4x4 } from "../src/Matrix4x4.js";
 import { DevUI,
          EngineState,
          CameraState } from "../src/DevUI.js";
+import { Mesh } from "../src/Mesh.js";
 
 const MSAA_SAMPLES = 4;
 const QUERY_BEGIN_AND_END = 2;
@@ -46,30 +44,25 @@ async function main() {
         stepMode: "vertex"
     };
 
-    const vertexData = new Float32Array([
-        -0.5, -0.5, 0.0,        0.0, 0.0, 1.0,      -0.5, -0.5,
-        -0.5,  0.5, 0.0,        0.0, 0.0, 1.0,      -0.5,  0.5,
-         0.5,  0.5, 0.0,        0.0, 0.0, 1.0,       0.5,  0.5,
-         0.5, -0.5, 0.0,        0.0, 0.0, 1.0,       0.5, -0.5
-    ]);
+    const basicMesh = Mesh.GenQuad();
 
     const vertexBufferDesc: GPUBufferDescriptor = {
-        size: vertexData.byteLength,
+        size: basicMesh.vertices.byteLength,
         usage: GPUBufferUsage.VERTEX,
         mappedAtCreation: true
     };
 
-    const vertexBuffer = renderer.createBufferWithData(vertexBufferDesc, vertexData);
-
-    const indexData = new Uint32Array([ 0, 2, 1, 0, 3, 2 ]);
+    const vertexBuffer = renderer.createBufferWithData(vertexBufferDesc,
+                                                       basicMesh.vertices);
 
     const indexBufferDesc: GPUBufferDescriptor = {
-        size: indexData.byteLength,
+        size: basicMesh.indices.byteLength,
         usage: GPUBufferUsage.INDEX,
         mappedAtCreation: true
     };
 
-    const indexBuffer = renderer.createBufferWithData(indexBufferDesc, indexData);
+    const indexBuffer = renderer.createBufferWithData(indexBufferDesc,
+                                                      basicMesh.indices);
 
     const transformBufferGPUDesc: GPUBufferDescriptor = {
         size: 512,
@@ -292,7 +285,7 @@ async function main() {
         renderpass.setBindGroup(0, uniformGroup0);
         renderpass.setVertexBuffer(0, vertexBuffer);
         renderpass.setIndexBuffer(indexBuffer, "uint32");
-        renderpass.drawIndexed(indexData.length);
+        renderpass.drawIndexed(basicMesh.indices.length);
         renderpass.end();
 
         timestampQuery.resolve(commandEncoder);
