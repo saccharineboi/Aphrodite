@@ -16,7 +16,7 @@
     "@types/dat.gui": "^0.7.13",
     "@types/mocha": "^10.0.10",
     "@webgpu/types": "^0.1.53",
-    "live-server": "^1.2.2",
+    "live-server": "^1.2.0",
     "live-server-https": "^0.0.2",
     "mocha": "^11.1.0",
     "ts-node": "^10.9.2"

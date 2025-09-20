@@ -91,12 +91,14 @@ export class Renderer {
         return this.canvas.height;
     }
 
-    public resizeCanvas(width: number, height: number, callback?: () => void) {
-        if (this.canvas.width !== width || this.canvas.height !== height) {
-            this.canvas.width = width;
-            this.canvas.height = height;
+    public resizeCanvas(callback?: (width: number, height: number) => void) {
+        const clientWidth = this.canvas.clientWidth;
+        const clientHeight = this.canvas.clientHeight;
+        if (this.canvas.width !== clientWidth || this.canvas.height !== clientHeight) {
+            this.canvas.width = clientWidth;
+            this.canvas.height = clientHeight;
             if (callback) {
-                callback();
+                callback(clientWidth, clientHeight);
             }
         }
     }

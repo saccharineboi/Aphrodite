@@ -19,6 +19,7 @@
     "strict": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
+    "useUnknownInCatchVariables": true,
     "skipLibCheck": true,
     "types": ["@webgpu/types",
               "@types/mocha",

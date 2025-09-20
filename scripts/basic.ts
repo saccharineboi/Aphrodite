@@ -6,13 +6,15 @@ import { Renderer } from "../src/Renderer.js";
 import { Vector2 } from "../src/Vector2.js";
 import { Vector3 } from "../src/Vector3.js";
 import { Matrix4x4 } from "../src/Matrix4x4.js";
+import { DevUI,
+         EngineState,
+         CameraState } from "../src/DevUI.js";
 
 const MSAA_SAMPLES = 4;
 const QUERY_BEGIN_AND_END = 2;
 
 async function main() {
     const renderer = await Renderer.Init("aphrodite-output");
-    renderer.resizeCanvas(innerWidth, innerHeight);
 
     const basicShaderModule = await renderer.createShaderModule("../shaders/basic.wgsl");
 
@@ -188,144 +190,44 @@ async function main() {
             count: MSAA_SAMPLES
         }
     };
-
     const pipeline = await renderer.createRenderPipeline(pipelineDesc);
 
-    const gui = new dat.GUI({ autoPlace: false });
-    const guiElem = document.querySelector("#gui") as HTMLElement;
-    if (!guiElem) {
-        throw new Error("GUI element for dat.gui doesn't exist");
-    }
-    guiElem.append(gui.domElement);
-
-    const engineFolder = gui.addFolder("Engine");
-    const engineState = {
-        clearColor: [10, 10, 20]
-    };
-    engineFolder.addColor(engineState, "clearColor")
-    engineFolder.open();
-
-    const fpsElem = document.querySelector("#fps");
-    if (!fpsElem) {
-        throw new Error("Couldn't find FPS element");
-    }
-
-    const performanceFolder = gui.addFolder("Performance");
-    const performanceState = {
-        ms: 0,
-        fps: 0,
-        totalTimePassed: 0,
-        delay: 1000,
-        frameCount: 0,
-        totalRenderpass: 0,
-        renderpass: 0,
-        update: function(dt: number) {
-            this.frameCount += 1;
-            this.totalTimePassed += dt;
-            if (this.totalTimePassed >= this.delay) {
-                this.ms = this.totalTimePassed / this.frameCount;
-                this.fps = 1000.0 / this.ms;
-                this.renderpass = this.totalRenderpass / this.frameCount;
-
-                this.totalTimePassed = 0;
-                this.totalRenderpass = 0;
-                this.frameCount = 0;
-
-                fpsElem.innerHTML = this.fps.toFixed(0);
-            }
-        }
-    };
-    performanceFolder.add(performanceState, "ms").step(0.00001).listen();
-    performanceFolder.add(performanceState, "fps").step(0.00001).listen();
-    performanceFolder.add(performanceState, "renderpass").step(0.00001).listen();
-    performanceFolder.add(performanceState, "delay");
-    performanceFolder.open();
-
-    const cameraFolder = gui.addFolder("Camera");
-    const cameraState = {
-        position: new Vector3(0.0, 0.0, 2.0),
-        rotation: new Vector3(0.0, 0.0, 0.0),
-        fovy: Math.PI / 2,
-    };
-
-    Util.addVec3ToGUIFolder({
-        parentFolder: cameraFolder,
-        folderName: "Position",
-        vec3: cameraState.position,
-        min: -10.0,
-        max: 10.0,
-        step: 0.01
-    });
-
-    Util.addVec3ToGUIFolder({
-        parentFolder: cameraFolder,
-        folderName: "Rotation",
-        vec3: cameraState.rotation,
-        min: -Math.PI / 2,
-        max: Math.PI / 2,
-        step: 0.01
-    });
-    cameraFolder.add(cameraState, "fovy", Math.PI / 10, Math.PI, 0.01);
-    cameraFolder.open();
-
-    const modelFolder = gui.addFolder("Model");
-    const modelState = {
-        position: new Vector3(0, -3, 0),
-        rotation: new Vector3(Math.PI / 2, 0, 0),
-        scale: new Vector3(100.0, 100.0, 100.0),
-        texcoordMultiplierFactor: 20,
-    };
-    Util.addVec3ToGUIFolder({
-        parentFolder: modelFolder,
-        folderName: "Position",
-        vec3: modelState.position,
-        min: -10.0,
-        max: 10.0,
-        step: 0.01
-    });
-    Util.addVec3ToGUIFolder({
-        parentFolder: modelFolder,
-        folderName: "Rotation",
-        vec3: modelState.rotation,
-        min: 0.0,
-        max: Math.PI * 2.0,
-        step: 0.01
-    });
-    Util.addVec3ToGUIFolder({
-        parentFolder: modelFolder,
-        folderName: "Scale",
-        vec3: modelState.scale,
-        min: 0.0,
-        max: 100.0,
-        step: 0.01
-    });
-    modelFolder.add(modelState, "texcoordMultiplierFactor", 1.0, 50.0, 0.01);
-    modelFolder.open();
-
     const timestampQuery = renderer.createTimestampQuery(QUERY_BEGIN_AND_END);
-    const inputHandler = renderer.createInputHandler();
+    // const inputHandler = renderer.createInputHandler();
+
+    const engineState = new EngineState();
+    engineState.setClearColor(new Vector3(0.1, 0.1, 0.2))
+
+    const cameraState = new CameraState();
+    const devUI = new DevUI(engineState, cameraState, { autoPlace: false });
 
     const dt = Util.genDeltaTimeComputer();
+    let totalTime = 0.0;
     const render = async () => {
-        renderer.resizeCanvas(innerWidth, innerHeight, () => {
+        renderer.resizeCanvas((newWidth, newHeight) => {
             depthTexture.destroy();
-            depthTextureDesc.size = [ innerWidth, innerHeight, 1 ];
+            depthTextureDesc.size = [ newWidth, newHeight, 1 ];
             depthTexture = renderer.createTexture(depthTextureDesc);
             depthTextureView = depthTexture.createView();
 
             msaaTexture.destroy();
-            msaaTextureDesc.size = [ innerWidth, innerHeight ];
+            msaaTextureDesc.size = [ newWidth, newHeight ];
             msaaTexture = renderer.createTexture(msaaTextureDesc);
             msaaTextureView = msaaTexture.createView();
         });
+
+        /*
         if (inputHandler.isPressed("KeyW")) {
             console.log("W is pressed");
         }
         else if (inputHandler.isPressed("KeyS")) {
             console.log("S is pressed");
         }
+        */
 
-        performanceState.update(dt());
+        const deltaTime = dt();
+        totalTime += deltaTime;
+        devUI.update(deltaTime);
 
         const canvasWidth = renderer.getCanvasWidth();
         const canvasHeight = renderer.getCanvasHeight();
@@ -336,16 +238,16 @@ async function main() {
         const viewMatrix = Matrix4x4.GenView(cameraState.position,
                                              cameraState.rotation);
 
-        const translationMatrix = Matrix4x4.GenTranslation(modelState.position);
-        const rotationMatrix = Matrix4x4.GenRotationXYZ(modelState.rotation);
-        const scaleMatrix = Matrix4x4.GenScale(modelState.scale);
+        const translationMatrix = Matrix4x4.GenTranslation(new Vector3(0, 0, -3));
+        const rotationMatrix = Matrix4x4.GenRotationXYZ(new Vector3(0.0, 0.0, totalTime * 1e-3));
+        const scaleMatrix = Matrix4x4.GenScale(new Vector3(1, 1, 1));
 
         const pvmMatrix = projectionMatrix.mul(viewMatrix)
                                           .mul(translationMatrix)
                                           .mul(rotationMatrix)
                                           .mul(scaleMatrix);
 
-        const texcoordMultiplierFactor = modelState.texcoordMultiplierFactor;
+        const texcoordMultiplierFactor = 2.0;
         const texcoordMultiplier = new Vector2(texcoordMultiplierFactor,
                                                texcoordMultiplierFactor);
 
@@ -396,7 +298,7 @@ async function main() {
         timestampQuery.resolve(commandEncoder);
         renderer.submitCommandBuffers([ commandEncoder.finish() ]);
         timestampQuery.map((value: BigInt) => {
-            performanceState.totalRenderpass += Number(value) * 1e-6;
+            devUI.addRenderpassMS(Number(value) * 1e-6);
         });
 
         requestAnimationFrame(render);
@@ -407,10 +309,11 @@ async function main() {
 try {
     main();
 }
-catch (e: any) {
-    const errorElem = document.querySelector("#error");
-    if (errorElem) {
-        (errorElem as HTMLDivElement).style.display = "block";
-        errorElem.innerHTML = e.toString();
+catch (e) {
+    if (e && typeof e.toString === "function") {
+        console.error(e.toString());
+    }
+    else {
+        console.error("Unknown exception");
     }
 }

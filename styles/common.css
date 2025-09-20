@@ -6,43 +6,24 @@
 
 html, body {
     overflow: hidden;
-    background-color: black;
+    background-color: darkgray;
 }
 
-#aphrodite-render {
-    background-color: gray;
+#aphrodite-output {
+    background-color: orange;
     width: 100%;
     height: 100%;
     position: absolute;
-    outline: none;
 }
 
-#gui {
+#aphrodite-dev-ui {
     position: absolute;
     top: 20px;
     left: 20px;
+    z-index: 1; /* show on top of rendering */
 }
 
-.container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: 100%;
-    position: fixed;
-    display: none;
-}
-
-#error {
-    padding: 10px;
-    background-color: white;
-    text-align: center;
-    color: black;
-    font-size: 16pt;
-    border-radius: 10px;
-}
-
-#fps {
+#aphrodite-dev-ui-fps {
     position: absolute;
     margin: 20px;
     top: 0;
