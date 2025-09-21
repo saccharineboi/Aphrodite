@@ -42,9 +42,7 @@ export class Vector3 implements Iterable<number> {
     }
 
     public toFloat32Array(): Float32Array {
-        return new Float32Array([ this.x,
-                                  this.y,
-                                  this.z ]);
+        return new Float32Array([ ...this ]);
     }
 
     public *[Symbol.iterator](): Iterator<number> {

@@ -88,10 +88,10 @@ export class Matrix4x4 implements Iterable<Vector4> {
 
     public toFloat32Array(): Float32Array {
         return new Float32Array([
-            this.col0.x, this.col0.y, this.col0.z, this.col0.w,
-            this.col1.x, this.col1.y, this.col1.z, this.col1.w,
-            this.col2.x, this.col2.y, this.col2.z, this.col2.w,
-            this.col3.x, this.col3.y, this.col3.z, this.col3.w,
+            ...this.col0,
+            ...this.col1,
+            ...this.col2,
+            ...this.col3,
         ]);
     }
 

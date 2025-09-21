@@ -55,10 +55,7 @@ export class Vector4 implements Iterable<number> {
     }
 
     public toFloat32Array(): Float32Array {
-        return new Float32Array([ this.x,
-                                  this.y,
-                                  this.z,
-                                  this.w ]);
+        return new Float32Array([ ...this ]);
     }
 
     public *[Symbol.iterator](): Iterator<number> {
