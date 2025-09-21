@@ -1,5 +1,6 @@
 import { Util } from "./Util.js";
 import { Vector2 } from "./Vector2.js";
+import { Vector4 } from "./Vector4.js";
 import { Matrix4x4 } from "./Matrix4x4.js";
 import { EngineState } from "./DevUI.js";
 import { Mesh } from "./Mesh.js";
@@ -482,6 +483,32 @@ export class Renderer {
             },
             [ width, height ]);
         });
+        return texture;
+    }
+
+    public createCheckerboardTexture(lightColor: Vector4,
+                                     darkColor: Vector4,
+                                     usage: TextureUsageType): GPUTexture {
+        const data = new Uint8ClampedArray([
+            ...lightColor, ...darkColor,
+            ...darkColor, ...lightColor,
+        ]);
+        const imgData: ImageData = new ImageData(data, 2);
+
+        const descriptor: GPUTextureDescriptor = {
+            size: [ 2, 2 ],
+            mipLevelCount: 1,
+            format: "rgba8unorm",
+            usage,
+        };
+        const texture = this.device.createTexture(descriptor);
+        this.device.queue.copyExternalImageToTexture({
+            source: imgData
+        }, {
+            texture,
+            mipLevel: 0,
+        },
+        [ imgData.width, imgData.height ]);
         return texture;
     }
 

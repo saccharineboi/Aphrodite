@@ -6,23 +6,28 @@ import { DevUI,
          EngineState,
          CameraState } from "../src/DevUI.js";
 import { Mesh } from "../src/Mesh.js";
+import { Vector4 } from "../src/Vector4.js";
 
 const MSAA_SAMPLES = 4;
-const MAX_ANISOTROPY = 4;
+// const MAX_ANISOTROPY = 4;
 
 async function main() {
     const renderer = await Renderer.Init("aphrodite-output");
 
-    const wallTexture = await renderer.createMipmappedTexture("../textures/wall",
-                                                              "rgba8unorm",
-                                                              GPUTextureUsage.COPY_DST |
-                                                              GPUTextureUsage.TEXTURE_BINDING |
-                                                              GPUTextureUsage.RENDER_ATTACHMENT);
-
-    const wallTextureSamplerDesc = renderer.createDefaultSamplerDescriptor(MAX_ANISOTROPY);
-    const wallTextureSampler = renderer.createSampler(wallTextureSamplerDesc);
-
-    // const inputHandler = renderer.createInputHandler();
+    const boardTexLightColor = new Vector4(100, 100, 100, 255);
+    const boardTexDarkColor = new Vector4(50, 50, 50, 255);
+    const boardTex = renderer.createCheckerboardTexture(boardTexLightColor,
+                                                        boardTexDarkColor,
+                                                        GPUTextureUsage.COPY_DST |
+                                                        GPUTextureUsage.TEXTURE_BINDING |
+                                                        GPUTextureUsage.RENDER_ATTACHMENT);
+    const boardTexSamplerDesc: GPUSamplerDescriptor = {
+        addressModeU: "repeat",
+        addressModeV: "repeat",
+        magFilter: "nearest",
+        minFilter: "nearest",
+    };
+    const boardTexSampler = renderer.createSampler(boardTexSamplerDesc);
 
     const engineState = new EngineState();
     engineState.setClearColor(new Vector3(0.1, 0.1, 0.2))
@@ -31,9 +36,13 @@ async function main() {
     const devUI = new DevUI(engineState, cameraState, { autoPlace: false });
 
     const basicRenderPipeline = await renderer.createBasicRenderPipeline(MSAA_SAMPLES);
-    const wallTextureBindGroup = basicRenderPipeline.createBindGroup(wallTexture, wallTextureSampler);
-    const customMesh = Mesh.GenCube();
-    const customMeshBuffers = basicRenderPipeline.createBuffersFromMesh(customMesh);
+    const wallTextureBindGroup = basicRenderPipeline.createBindGroup(boardTex, boardTexSampler);
+
+    // const cube = Mesh.GenCube();
+    // const cubeBuffers = basicRenderPipeline.createBuffersFromMesh(cube);
+
+    const plane = Mesh.GenPlane(100, 100);
+    const planeBuffers = basicRenderPipeline.createBuffersFromMesh(plane);
 
     const dt = Util.genDeltaTimeComputer();
     let totalTime = 0.0;
@@ -55,9 +64,8 @@ async function main() {
         const viewMatrix = Matrix4x4.GenView(cameraState.position,
                                              cameraState.rotation);
 
-        const translationMatrix = Matrix4x4.GenTranslation(new Vector3(0, 0, -3));
-        const rdt = totalTime * 1e-3;
-        const rotationMatrix = Matrix4x4.GenRotationXYZ(new Vector3(rdt, rdt, rdt));
+        const translationMatrix = Matrix4x4.GenTranslation(new Vector3(0, -3, 0));
+        const rotationMatrix = Matrix4x4.GenRotationXYZ(new Vector3());
         const scaleMatrix = Matrix4x4.GenScale(new Vector3(1, 1, 1));
 
         const pvmMatrix = projectionMatrix.mul(viewMatrix)
@@ -66,13 +74,13 @@ async function main() {
                                           .mul(scaleMatrix);
 
         basicRenderPipeline.setPVM(pvmMatrix);
-        basicRenderPipeline.setTextureMultiplier(1);
+        basicRenderPipeline.setTextureMultiplier(20);
 
         const cmdBuffers: Array<GPUCommandBuffer> = [];
         cmdBuffers.push(basicRenderPipeline.buildCommandBuffer({
             engineState,
             bindGroup: wallTextureBindGroup,
-            buffers: customMeshBuffers,
+            buffers: planeBuffers,
         }));
         renderer.submitCommandBuffers(cmdBuffers);
 

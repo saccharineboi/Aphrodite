@@ -27,6 +27,21 @@ export class Mesh {
         return new Mesh(vertices, indices);
     }
 
+    public static GenPlane(width: number, depth: number): Mesh {
+        const halfWidth = width >> 1;
+        const halfDepth = depth >> 1;
+        const vertices = new Float32Array([
+            -halfWidth, 0.0,  halfDepth,     0.0, 1.0, 0.0,      0.0, 0.0,
+             halfWidth, 0.0,  halfDepth,     0.0, 1.0, 0.0,      1.0, 0.0,
+            -halfWidth, 0.0, -halfDepth,     0.0, 1.0, 0.0,      0.0, 1.0,
+             halfWidth, 0.0, -halfDepth,     0.0, 1.0, 0.0,      1.0, 1.0,
+        ]);
+        const indices = new Uint32Array([
+            0, 1, 2, 2, 1, 3
+        ]);
+        return new Mesh(vertices, indices);
+    }
+
     public static GenCube(): Mesh {
         const vertices = new Float32Array([
             // front face
