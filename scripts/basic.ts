@@ -32,8 +32,8 @@ async function main() {
 
     const basicRenderPipeline = await renderer.createBasicRenderPipeline(MSAA_SAMPLES);
     const wallTextureBindGroup = basicRenderPipeline.createBindGroup(wallTexture, wallTextureSampler);
-    const quad = Mesh.GenQuad();
-    const quadBuffers = basicRenderPipeline.createBuffersFromMesh(quad);
+    const customMesh = Mesh.GenCube();
+    const customMeshBuffers = basicRenderPipeline.createBuffersFromMesh(customMesh);
 
     const dt = Util.genDeltaTimeComputer();
     let totalTime = 0.0;
@@ -56,7 +56,8 @@ async function main() {
                                              cameraState.rotation);
 
         const translationMatrix = Matrix4x4.GenTranslation(new Vector3(0, 0, -3));
-        const rotationMatrix = Matrix4x4.GenRotationXYZ(new Vector3(0.0, 0.0, totalTime * 1e-3));
+        const rdt = totalTime * 1e-3;
+        const rotationMatrix = Matrix4x4.GenRotationXYZ(new Vector3(rdt, rdt, rdt));
         const scaleMatrix = Matrix4x4.GenScale(new Vector3(1, 1, 1));
 
         const pvmMatrix = projectionMatrix.mul(viewMatrix)
@@ -71,7 +72,7 @@ async function main() {
         cmdBuffers.push(basicRenderPipeline.buildCommandBuffer({
             engineState,
             bindGroup: wallTextureBindGroup,
-            buffers: quadBuffers,
+            buffers: customMeshBuffers,
         }));
         renderer.submitCommandBuffers(cmdBuffers);
 
