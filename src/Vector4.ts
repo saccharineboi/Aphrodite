@@ -1,6 +1,6 @@
 import { Util } from "./Util.js";
 
-export class Vector4 {
+export class Vector4 implements Iterable<number> {
     public constructor(public x: number = 0.0,
                        public y: number = 0.0,
                        public z: number = 0.0,
@@ -59,6 +59,13 @@ export class Vector4 {
                                   this.y,
                                   this.z,
                                   this.w ]);
+    }
+
+    public *[Symbol.iterator](): Iterator<number> {
+        yield this.x;
+        yield this.y;
+        yield this.z;
+        yield this.w;
     }
 
     public isEqual(other: Vector4, eps = Util.EPSILON): boolean {

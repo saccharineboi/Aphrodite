@@ -1,6 +1,6 @@
 import { Util } from "./Util.js";
 
-export class Vector3 {
+export class Vector3 implements Iterable<number> {
     public constructor(public x: number = 0.0,
                        public y: number = 0.0,
                        public z: number = 0.0) {}
@@ -45,6 +45,12 @@ export class Vector3 {
         return new Float32Array([ this.x,
                                   this.y,
                                   this.z ]);
+    }
+
+    public *[Symbol.iterator](): Iterator<number> {
+        yield this.x;
+        yield this.y;
+        yield this.z;
     }
 
     public isEqual(other: Vector3, eps = Util.EPSILON): boolean {

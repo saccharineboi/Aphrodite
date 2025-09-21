@@ -2,7 +2,7 @@ import { Util } from "./Util.js";
 import { Vector3 } from "./Vector3.js";
 import { Vector4 } from "./Vector4.js";
 
-export class Matrix4x4 {
+export class Matrix4x4 implements Iterable<Vector4> {
     public constructor(public col0: Vector4 = Vector4.X(),
                        public col1: Vector4 = Vector4.Y(),
                        public col2: Vector4 = Vector4.Z(),
@@ -93,6 +93,13 @@ export class Matrix4x4 {
             this.col2.x, this.col2.y, this.col2.z, this.col2.w,
             this.col3.x, this.col3.y, this.col3.z, this.col3.w,
         ]);
+    }
+
+    public *[Symbol.iterator](): Iterator<Vector4> {
+        yield this.col0;
+        yield this.col1;
+        yield this.col2;
+        yield this.col3;
     }
 
     public isEqual(other: Matrix4x4, eps = Util.EPSILON): boolean {
