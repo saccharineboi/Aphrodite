@@ -83,10 +83,6 @@ interface RenderPipeline extends AbstractPipeline {
 };
 
 interface BasicRenderPipelineParams extends RenderPipelineParams {
-    msaaTextureDesc: GPUTextureDescriptor;
-    msaaTexture: GPUTexture;
-    msaaTextureView: GPUTextureView;
-
     depthTextureDesc: GPUTextureDescriptor;
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
@@ -120,11 +116,6 @@ class BasicRenderPipeline implements RenderPipeline {
         this.params.depthTextureDesc.size = [ width, height, 1 ];
         this.params.depthTexture = this.params.device.createTexture(this.params.depthTextureDesc);
         this.params.depthTextureView = this.params.depthTexture.createView();
-
-        this.params.msaaTexture.destroy();
-        this.params.msaaTextureDesc.size = [ width, height ];
-        this.params.msaaTexture = this.params.device.createTexture(this.params.msaaTextureDesc);
-        this.params.msaaTextureView = this.params.msaaTexture.createView();
     }
 
     public setPVM(pvm: Matrix4x4): void {
@@ -145,8 +136,7 @@ class BasicRenderPipeline implements RenderPipeline {
         const colorTextureView = colorTexture.createView();
 
         const colorAttachment: GPURenderPassColorAttachment = {
-            view: this.params.msaaTextureView,
-            resolveTarget: colorTextureView,
+            view: colorTextureView,
             clearValue: { r: (cmdParams.engineState.clearColor[0] ?? 0.0) / 255.0,
                           g: (cmdParams.engineState.clearColor[1] ?? 0.0) / 255.0,
                           b: (cmdParams.engineState.clearColor[2] ?? 0.0) / 255.0,
@@ -270,7 +260,7 @@ export class Renderer {
                         private ctx: GPUCanvasContext)
     { }
 
-    public async createBasicRenderPipeline(msaaSampleCount: number): Promise<BasicRenderPipeline> {
+    public async createBasicRenderPipeline(): Promise<BasicRenderPipeline> {
         const source = await Util.downloadText("../shaders/basic.wgsl");
         const shaderDesc: GPUShaderModuleDescriptor = {
             code: source
@@ -322,18 +312,8 @@ export class Renderer {
         };
         const bindGroupLayout = this.device.createBindGroupLayout(uniformGroup0LayoutDesc);
 
-        const msaaTextureDesc: GPUTextureDescriptor = {
-            size: [ this.canvas.width, this.canvas.height ],
-            sampleCount: msaaSampleCount,
-            format: navigator.gpu.getPreferredCanvasFormat(),
-            usage: GPUTextureUsage.RENDER_ATTACHMENT
-        };
-        let msaaTexture = this.device.createTexture(msaaTextureDesc);
-        let msaaTextureView = msaaTexture.createView();
-
         const depthTextureDesc: GPUTextureDescriptor = {
             size: [ this.canvas.width, this.canvas.height, 1 ],
-            sampleCount: msaaSampleCount,
             dimension: "2d",
             format: "depth32float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT
@@ -373,9 +353,6 @@ export class Renderer {
                 depthCompare: "greater-equal",
                 format: "depth32float",
             },
-            multisample: {
-                count: msaaSampleCount
-            }
         };
         const pipeline = this.device.createRenderPipeline(pipelineDesc);
         const timestampQuery = new TimestampQuery(this.device, 2);
@@ -394,10 +371,6 @@ export class Renderer {
             device,
             ctx,
             canvas,
-
-            msaaTextureDesc,
-            msaaTexture,
-            msaaTextureView,
 
             depthTextureDesc,
             depthTexture,

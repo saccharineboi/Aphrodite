@@ -8,7 +8,6 @@ import { DevUI,
 import { Mesh } from "../src/Mesh.js";
 import { Vector4 } from "../src/Vector4.js";
 
-const MSAA_SAMPLES = 4;
 // const MAX_ANISOTROPY = 4;
 
 async function main() {
@@ -35,11 +34,8 @@ async function main() {
     const cameraState = new CameraState();
     const devUI = new DevUI(engineState, cameraState, { autoPlace: false });
 
-    const basicRenderPipeline = await renderer.createBasicRenderPipeline(MSAA_SAMPLES);
+    const basicRenderPipeline = await renderer.createBasicRenderPipeline();
     const wallTextureBindGroup = basicRenderPipeline.createBindGroup(boardTex, boardTexSampler);
-
-    // const cube = Mesh.GenCube();
-    // const cubeBuffers = basicRenderPipeline.createBuffersFromMesh(cube);
 
     const plane = Mesh.GenPlane(100, 100);
     const planeBuffers = basicRenderPipeline.createBuffersFromMesh(plane);
