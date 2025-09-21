@@ -28,6 +28,22 @@ export class Vector2 {
         this.y = y;
     }
 
+    public get width(): number {
+        return this.x;
+    }
+
+    public get height(): number {
+        return this.y;
+    }
+
+    public set width(w: number) {
+        this.x = w;
+    }
+
+    public set height(h: number) {
+        this.y = h;
+    }
+
     public toFloat32Array(): Float32Array {
         return new Float32Array([ this.x,
                                   this.y ]);

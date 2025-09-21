@@ -1,9 +1,8 @@
 import { Util } from "./Util.js";
-import { Input } from "./Input.js";
 import { Vector2 } from "./Vector2.js";
-import { Vector3 } from "./Vector3.js";
-import { Vector4 } from "./Vector4.js";
 import { Matrix4x4 } from "./Matrix4x4.js";
+import { EngineState } from "./DevUI.js";
+import { Mesh } from "./Mesh.js";
 
 type BufferDataType = Float32Array | Uint32Array;
 type TextureUsageType = GPUTextureUsage["TEXTURE_BINDING"] |
@@ -68,67 +67,161 @@ class TimestampQuery {
     }
 };
 
-export class Renderer {
+interface AbstractPipeline {
 
-    private constructor(private device: GPUDevice,
-                        private canvas: HTMLCanvasElement,
-                        private ctx: GPUCanvasContext)
-    { }
+};
 
-    public createTimestampQuery(count: number): TimestampQuery {
-        return new TimestampQuery(this.device, count);
+interface RenderPipelineParams {
+    device: GPUDevice;
+    ctx: GPUCanvasContext;
+    canvas: HTMLCanvasElement;
+};
+
+interface RenderPipeline extends AbstractPipeline {
+    resize(width: number, height: number): void;
+};
+
+interface BasicRenderPipelineParams extends RenderPipelineParams {
+    msaaTextureDesc: GPUTextureDescriptor;
+    msaaTexture: GPUTexture;
+    msaaTextureView: GPUTextureView;
+
+    depthTextureDesc: GPUTextureDescriptor;
+    depthTexture: GPUTexture;
+    depthTextureView: GPUTextureView;
+
+    pipeline: GPURenderPipeline;
+    timestampQuery: TimestampQuery;
+
+    bindGroupLayout: GPUBindGroupLayout;
+    transformBuffer: GPUBuffer;
+};
+
+interface BasicRenderPipelineBuildCommandBufferParams {
+    engineState: EngineState;
+    bindGroup: GPUBindGroup;
+    buffers: BasicRenderPipelineBuffers;
+};
+
+interface BasicRenderPipelineBuffers {
+    vbo: GPUBuffer;
+    ebo: GPUBuffer;
+    eboType: GPUIndexFormat;
+    eboElementCount: number;
+};
+
+class BasicRenderPipeline implements RenderPipeline {
+
+    public constructor(private params: BasicRenderPipelineParams) { }
+
+    public resize(width: number, height: number): void {
+        this.params.depthTexture.destroy();
+        this.params.depthTextureDesc.size = [ width, height, 1 ];
+        this.params.depthTexture = this.params.device.createTexture(this.params.depthTextureDesc);
+        this.params.depthTextureView = this.params.depthTexture.createView();
+
+        this.params.msaaTexture.destroy();
+        this.params.msaaTextureDesc.size = [ width, height ];
+        this.params.msaaTexture = this.params.device.createTexture(this.params.msaaTextureDesc);
+        this.params.msaaTextureView = this.params.msaaTexture.createView();
     }
 
-    public createInputHandler(): Input {
-        return new Input(this.canvas);
+    public setPVM(pvm: Matrix4x4): void {
+        this.params.device.queue.writeBuffer(this.params.transformBuffer,
+                                             0,
+                                             pvm.toFloat32Array() as GPUAllowSharedBufferSource);
     }
 
-    public getCanvasWidth(): number {
-        return this.canvas.width;
+    public setTextureMultiplier(multiplier: number): void {
+        const multiplierVec2 = new Vector2(multiplier, multiplier);
+        this.params.device.queue.writeBuffer(this.params.transformBuffer,
+                                             256,
+                                             multiplierVec2.toFloat32Array() as GPUAllowSharedBufferSource);
     }
 
-    public getCanvasHeight(): number {
-        return this.canvas.height;
-    }
+    public buildCommandBuffer(cmdParams: BasicRenderPipelineBuildCommandBufferParams): GPUCommandBuffer {
+        const colorTexture = this.params.ctx.getCurrentTexture();
+        const colorTextureView = colorTexture.createView();
 
-    public resizeCanvas(callback?: (width: number, height: number) => void) {
-        const clientWidth = this.canvas.clientWidth;
-        const clientHeight = this.canvas.clientHeight;
-        if (this.canvas.width !== clientWidth || this.canvas.height !== clientHeight) {
-            this.canvas.width = clientWidth;
-            this.canvas.height = clientHeight;
-            if (callback) {
-                callback(clientWidth, clientHeight);
-            }
-        }
-    }
-
-    public createCommandEncoder(): GPUCommandEncoder {
-        return this.device.createCommandEncoder();
-    }
-
-    public submitCommandBuffers(commandBuffers: Array<GPUCommandBuffer>): void {
-        this.device.queue.submit(commandBuffers);
-    }
-
-    public async createShaderModule(path: string): Promise<GPUShaderModule> {
-        const source = await Util.downloadText(path);
-        const shaderDesc: GPUShaderModuleDescriptor = {
-            code: source
+        const colorAttachment: GPURenderPassColorAttachment = {
+            view: this.params.msaaTextureView,
+            resolveTarget: colorTextureView,
+            clearValue: { r: (cmdParams.engineState.clearColor[0] ?? 0.0) / 255.0,
+                          g: (cmdParams.engineState.clearColor[1] ?? 0.0) / 255.0,
+                          b: (cmdParams.engineState.clearColor[2] ?? 0.0) / 255.0,
+                          a: 1.0 },
+            loadOp: "clear",
+            storeOp: "store",
         };
-        return this.device.createShaderModule(shaderDesc);
+
+        const depthAttachment: GPURenderPassDepthStencilAttachment = {
+            view: this.params.depthTextureView,
+            depthClearValue: 0,
+            depthLoadOp: "clear",
+            depthStoreOp: "store",
+        };
+
+        const renderpassDesc: GPURenderPassDescriptor = {
+            colorAttachments: [colorAttachment],
+            depthStencilAttachment: depthAttachment,
+            timestampWrites: {
+                querySet: this.params.timestampQuery.getQuerySet(),
+                beginningOfPassWriteIndex: 0,
+                endOfPassWriteIndex: 1
+            }
+        };
+
+        const commandEncoder = this.params.device.createCommandEncoder();
+        const renderpass = commandEncoder.beginRenderPass(renderpassDesc);
+        renderpass.setViewport(0, 0, this.params.canvas.width, this.params.canvas.height, 0.0, 1.0);
+        renderpass.setPipeline(this.params.pipeline);
+        renderpass.setBindGroup(0, cmdParams.bindGroup);
+        renderpass.setVertexBuffer(0, cmdParams.buffers.vbo);
+        renderpass.setIndexBuffer(cmdParams.buffers.ebo, cmdParams.buffers.eboType);
+        renderpass.drawIndexed(cmdParams.buffers.eboElementCount);
+        renderpass.end();
+
+        this.params.timestampQuery.resolve(commandEncoder);
+        return commandEncoder.finish();
     }
 
-    public createBuffer(bufferDesc: GPUBufferDescriptor): GPUBuffer {
-        return this.device.createBuffer(bufferDesc);
+    public obtainRenderpassMS(callback: (value: BigInt) => void): void {
+        this.params.timestampQuery.map((value: BigInt) => callback(value));
     }
 
-    public createBufferWithData(bufferDesc: GPUBufferDescriptor,
-                                data: BufferDataType): GPUBuffer {
+    public createBindGroup(texture: GPUTexture,
+                           sampler: GPUSampler): GPUBindGroup {
+        const desc: GPUBindGroupDescriptor = {
+            layout: this.params.bindGroupLayout,
+            entries: [{
+                binding: 0,
+                resource: {
+                    offset: 0,
+                    buffer: this.params.transformBuffer
+                }
+            }, {
+                binding: 1,
+                resource: texture.createView()
+            }, {
+                binding: 2,
+                resource: sampler
+            }, {
+                binding: 3,
+                resource: {
+                    offset: 256,
+                    buffer: this.params.transformBuffer
+                }
+            }]
+        };
+        return this.params.device.createBindGroup(desc);
+    }
+
+    private createBufferWithData(bufferDesc: GPUBufferDescriptor,
+                                 data: BufferDataType): GPUBuffer {
         if (!bufferDesc.mappedAtCreation) {
             throw new Error("Aphrodite: GPU buffer must be mapped at creation");
         }
-        const buffer = this.createBuffer(bufferDesc);
+        const buffer = this.params.device.createBuffer(bufferDesc);
         let writeArray: BufferDataType | undefined;
         if (data instanceof Float32Array) {
             writeArray = new Float32Array(buffer.getMappedRange());
@@ -144,47 +237,213 @@ export class Renderer {
         return buffer;
     }
 
-    public createTexture(descriptor: GPUTextureDescriptor): GPUTexture {
-        return this.device.createTexture(descriptor);
+    public createBuffersFromMesh(mesh: Mesh): BasicRenderPipelineBuffers {
+        const vertexBufferDesc: GPUBufferDescriptor = {
+            size: mesh.vertices.byteLength,
+            usage: GPUBufferUsage.VERTEX,
+            mappedAtCreation: true
+        };
+        const vertexBuffer = this.createBufferWithData(vertexBufferDesc,
+                                                       mesh.vertices);
+
+        const indexBufferDesc: GPUBufferDescriptor = {
+            size: mesh.indices.byteLength,
+            usage: GPUBufferUsage.INDEX,
+            mappedAtCreation: true
+        };
+        const indexBuffer = this.createBufferWithData(indexBufferDesc,
+                                                      mesh.indices);
+        return {
+            vbo: vertexBuffer,
+            ebo: indexBuffer,
+            eboType: "uint32",
+            eboElementCount: mesh.indices.length,
+        };
+    };
+};
+
+export class Renderer {
+
+    private constructor(private device: GPUDevice,
+                        private canvas: HTMLCanvasElement,
+                        private ctx: GPUCanvasContext)
+    { }
+
+    public async createBasicRenderPipeline(msaaSampleCount: number): Promise<BasicRenderPipeline> {
+        const source = await Util.downloadText("../shaders/basic.wgsl");
+        const shaderDesc: GPUShaderModuleDescriptor = {
+            code: source
+        };
+        const shaderModule = this.device.createShaderModule(shaderDesc);
+
+        const aPosAttribDesc: GPUVertexAttribute = {
+            shaderLocation: 0,
+            offset: 0,
+            format: "float32x3"
+        };
+
+        const aNormAttribDesc: GPUVertexAttribute = {
+            shaderLocation: 1,
+            offset: Float32Array.BYTES_PER_ELEMENT * 3,
+            format: "float32x3"
+        };
+
+        const aTexCoordAttribDesc: GPUVertexAttribute = {
+            shaderLocation: 2,
+            offset: Float32Array.BYTES_PER_ELEMENT * 6,
+            format: "float32x2"
+        };
+
+        const vertexBufferLayoutDesc: GPUVertexBufferLayout = {
+            attributes: [aPosAttribDesc, aNormAttribDesc, aTexCoordAttribDesc],
+            arrayStride: Float32Array.BYTES_PER_ELEMENT * 8,
+            stepMode: "vertex"
+        };
+
+        const uniformGroup0LayoutDesc: GPUBindGroupLayoutDescriptor = {
+            entries: [{
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            }, {
+                binding: 1,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: {}
+            }, {
+                binding: 2,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: {}
+            }, {
+                binding: 3,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: {}
+            }]
+        };
+        const bindGroupLayout = this.device.createBindGroupLayout(uniformGroup0LayoutDesc);
+
+        const msaaTextureDesc: GPUTextureDescriptor = {
+            size: [ this.canvas.width, this.canvas.height ],
+            sampleCount: msaaSampleCount,
+            format: navigator.gpu.getPreferredCanvasFormat(),
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        };
+        let msaaTexture = this.device.createTexture(msaaTextureDesc);
+        let msaaTextureView = msaaTexture.createView();
+
+        const depthTextureDesc: GPUTextureDescriptor = {
+            size: [ this.canvas.width, this.canvas.height, 1 ],
+            sampleCount: msaaSampleCount,
+            dimension: "2d",
+            format: "depth32float",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        };
+
+        let depthTexture = this.device.createTexture(depthTextureDesc);
+        let depthTextureView = depthTexture.createView();
+
+        const pipelineLayoutDesc: GPUPipelineLayoutDescriptor = {
+            bindGroupLayouts: [bindGroupLayout],
+        };
+        const pipelineLayout = this.device.createPipelineLayout(pipelineLayoutDesc);
+
+        const colorState: GPUColorTargetState = {
+            format: "bgra8unorm"
+        };
+
+        const pipelineDesc: GPURenderPipelineDescriptor = {
+            layout: pipelineLayout,
+            vertex: {
+                module: shaderModule,
+                entryPoint: "vs_main",
+                buffers: [vertexBufferLayoutDesc]
+            },
+            fragment: {
+                module: shaderModule,
+                entryPoint: "fs_main",
+                targets: [colorState]
+            },
+            primitive: {
+                topology: "triangle-list",
+                frontFace: "ccw",
+                cullMode: "back"
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "greater-equal",
+                format: "depth32float",
+            },
+            multisample: {
+                count: msaaSampleCount
+            }
+        };
+        const pipeline = this.device.createRenderPipeline(pipelineDesc);
+        const timestampQuery = new TimestampQuery(this.device, 2);
+
+        const transformBufferDesc: GPUBufferDescriptor = {
+            size: 512,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: false,
+        };
+        const transformBuffer = this.device.createBuffer(transformBufferDesc);
+
+        const device = this.device;
+        const ctx = this.ctx;
+        const canvas = this.canvas;
+        return new BasicRenderPipeline({
+            device,
+            ctx,
+            canvas,
+
+            msaaTextureDesc,
+            msaaTexture,
+            msaaTextureView,
+
+            depthTextureDesc,
+            depthTexture,
+            depthTextureView,
+
+            pipeline,
+            timestampQuery,
+
+            bindGroupLayout,
+            transformBuffer,
+        });
     }
 
-    public createSampler(descriptor: GPUSamplerDescriptor): GPUSampler {
-        return this.device.createSampler(descriptor);
+    public getCanvasDimensions(): Vector2 {
+        return new Vector2(this.canvas.width, this.canvas.height);
     }
 
-    public createBindGroupLayout(descriptor: GPUBindGroupLayoutDescriptor): GPUBindGroupLayout {
-        return this.device.createBindGroupLayout(descriptor);
+    public resizeCanvas(callback?: (width: number, height: number) => void) {
+        const clientWidth = this.canvas.clientWidth;
+        const clientHeight = this.canvas.clientHeight;
+        if (this.canvas.width !== clientWidth || this.canvas.height !== clientHeight) {
+            this.canvas.width = clientWidth;
+            this.canvas.height = clientHeight;
+            if (callback) {
+                callback(clientWidth, clientHeight);
+            }
+        }
     }
 
-    public createBindGroup(descriptor: GPUBindGroupDescriptor): GPUBindGroup {
-        return this.device.createBindGroup(descriptor);
+    public submitCommandBuffers(commandBuffers: Array<GPUCommandBuffer>): void {
+        this.device.queue.submit(commandBuffers);
     }
 
-    public writeBuffer(src: GPUBuffer, srcOffset: number, data: GPUAllowSharedBufferSource): void {
-        this.device.queue.writeBuffer(src, srcOffset, data);
+    public createSampler(desc: GPUSamplerDescriptor): GPUSampler {
+        return this.device.createSampler(desc);
     }
 
-    public writeVector2ToBuffer(src: GPUBuffer, srcOffset: number, data: Vector2): void {
-        this.device.queue.writeBuffer(src,
-                                      srcOffset,
-                                      data.toFloat32Array() as GPUAllowSharedBufferSource);
-    }
-
-    public writeVector3ToBuffer(src: GPUBuffer, srcOffset: number, data: Vector3): void {
-        this.device.queue.writeBuffer(src,
-                                      srcOffset,
-                                      data.toFloat32Array() as GPUAllowSharedBufferSource);
-    }
-    public writeVector4ToBuffer(src: GPUBuffer, srcOffset: number, data: Vector4): void {
-        this.device.queue.writeBuffer(src,
-                                      srcOffset,
-                                      data.toFloat32Array() as GPUAllowSharedBufferSource);
-    }
-
-    public writeMatrix4x4ToBuffer(src: GPUBuffer, srcOffset: number, data: Matrix4x4): void {
-        this.device.queue.writeBuffer(src,
-                                      srcOffset,
-                                      data.toFloat32Array() as GPUAllowSharedBufferSource);
+    public createDefaultSamplerDescriptor(anisotropy: number): GPUSamplerDescriptor {
+        const desc: GPUSamplerDescriptor = {
+            addressModeU: "repeat",
+            addressModeV: "repeat",
+            magFilter: "linear",
+            minFilter: "linear",
+            mipmapFilter: "linear",
+            maxAnisotropy: anisotropy,
+        };
+        return desc;
     }
 
     public async createMipmappedTexture(path: string,
@@ -224,18 +483,6 @@ export class Renderer {
             [ width, height ]);
         });
         return texture;
-    }
-
-    public createPipelineLayout(desc: GPUPipelineLayoutDescriptor): GPUPipelineLayout {
-        return this.device.createPipelineLayout(desc);
-    }
-
-    public async createRenderPipeline(desc: GPURenderPipelineDescriptor): Promise<GPURenderPipeline> {
-        return await this.device.createRenderPipelineAsync(desc);
-    }
-
-    public getCanvasTexture(): GPUTexture {
-        return this.ctx.getCurrentTexture();
     }
 
     public static async Init(canvasID: string): Promise<Renderer> {
