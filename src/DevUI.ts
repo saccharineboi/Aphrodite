@@ -42,15 +42,27 @@ class PerformanceStats {
 
 export class EngineState {
     public clearColor: Array<number>;
+    private clickedTakeScreenshot: boolean;
 
     public constructor() {
         this.clearColor = new Array(0, 0, 0);
+        this.clickedTakeScreenshot = false;
     }
 
     public setClearColor(color: Vector3) {
         this.clearColor[0] = (color.r * 255.0);
         this.clearColor[1] = (color.g * 255.0);
         this.clearColor[2] = (color.b * 255.0);
+    }
+
+    public takeScreenshot() {
+        this.clickedTakeScreenshot = true;
+    }
+
+    public shouldTakeScreenshot(): boolean {
+        const currentValue = this.clickedTakeScreenshot;
+        this.clickedTakeScreenshot = false;
+        return currentValue;
     }
 };
 
@@ -95,6 +107,7 @@ export class DevUI {
         // Engine  parameters
         this.engineFolder = this.gui.addFolder("Engine");
         this.engineFolder.addColor(this.engineState, "clearColor");
+        this.engineFolder.add(this.engineState, "takeScreenshot").name("take screenshot 📷");
         this.engineFolder.open();
 
         // Average FPS
@@ -138,7 +151,7 @@ export class DevUI {
         }
     }
 
-    public addRenderpassMS(ms: number) {
+    public addRenderpassMS(ms: number): void {
         this.perfStats.totalRenderpass += ms;
     }
 };

@@ -34,7 +34,7 @@ export class Util {
             lastTime = currentTime;
             return deltaTime;
         };
-    };
+    }
 
     public static async downloadText(url: string) : Promise<string> {
         const response = await fetch(url);
@@ -43,7 +43,7 @@ export class Util {
         }
         const text = await response.text();
         return text;
-    };
+    }
 
     public static async downloadImage(url: string) : Promise<ImageBitmap> {
         const response = await fetch(url);
@@ -82,6 +82,17 @@ export class Util {
         newFolder.add(params.vec3, "y", params.min, params.max, params.step);
         newFolder.add(params.vec3, "z", params.min, params.max, params.step);
         return newFolder;
-    };
+    }
+
+    public static saveBlobAsImage(blob: Blob, path: string): void {
+        const tmpLink = document.createElement("a");
+        tmpLink.style.display = "none";
+        document.body.appendChild(tmpLink);
+        const url = window.URL.createObjectURL(blob);
+        tmpLink.href = url;
+        tmpLink.download = path;
+        tmpLink.click();
+        tmpLink.parentNode?.removeChild(tmpLink);
+    }
 };
 

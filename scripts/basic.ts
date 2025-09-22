@@ -83,6 +83,8 @@ async function main() {
         basicRenderPipeline.obtainRenderpassMS((value) => {
             devUI.addRenderpassMS(Number(value) * 1e-6);
         });
+
+        renderer.handleScreenshot(engineState);
         requestAnimationFrame(render);
     };
     requestAnimationFrame(render);

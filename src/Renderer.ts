@@ -150,8 +150,6 @@ class BasicRenderPipeline implements RenderPipeline {
             depthClearValue: 0,
             depthLoadOp: "clear",
             depthStoreOp: "store",
-            stencilLoadOp: "clear",
-            stencilStoreOp: "discard",
         };
 
         const renderpassDesc: GPURenderPassDescriptor = {
@@ -317,7 +315,7 @@ export class Renderer {
         const depthTextureDesc: GPUTextureDescriptor = {
             size: [ this.canvas.width, this.canvas.height, 1 ],
             dimension: "2d",
-            format: "depth24plus-stencil8",
+            format: "depth32float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         };
 
@@ -353,7 +351,7 @@ export class Renderer {
             depthStencil: {
                 depthWriteEnabled: true,
                 depthCompare: "greater-equal",
-                format: "depth24plus-stencil8",
+                format: "depth32float",
             },
         };
         const pipeline = this.device.createRenderPipeline(pipelineDesc);
@@ -486,6 +484,19 @@ export class Renderer {
         },
         [ imgData.width, imgData.height ]);
         return texture;
+    }
+
+    public handleScreenshot(engineState: EngineState): void {
+        if (engineState.shouldTakeScreenshot()) {
+            this.canvas.toBlob(blob => {
+                if (blob) {
+                    Util.saveBlobAsImage(blob, `aphrodite-${Date.now()}.png`);
+                }
+                else {
+                    throw new Error(`Aphrodite: could not take screenshot, blob is NULL`);
+                }
+            });
+        }
     }
 
     public static async Init(canvasID: string): Promise<Renderer> {
