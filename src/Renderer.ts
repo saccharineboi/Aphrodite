@@ -150,6 +150,8 @@ class BasicRenderPipeline implements RenderPipeline {
             depthClearValue: 0,
             depthLoadOp: "clear",
             depthStoreOp: "store",
+            stencilLoadOp: "clear",
+            stencilStoreOp: "discard",
         };
 
         const renderpassDesc: GPURenderPassDescriptor = {
@@ -315,7 +317,7 @@ export class Renderer {
         const depthTextureDesc: GPUTextureDescriptor = {
             size: [ this.canvas.width, this.canvas.height, 1 ],
             dimension: "2d",
-            format: "depth32float",
+            format: "depth24plus-stencil8",
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         };
 
@@ -351,7 +353,7 @@ export class Renderer {
             depthStencil: {
                 depthWriteEnabled: true,
                 depthCompare: "greater-equal",
-                format: "depth32float",
+                format: "depth24plus-stencil8",
             },
         };
         const pipeline = this.device.createRenderPipeline(pipelineDesc);
@@ -389,13 +391,14 @@ export class Renderer {
     }
 
     public resizeCanvas(callback?: (width: number, height: number) => void) {
-        const clientWidth = this.canvas.clientWidth;
-        const clientHeight = this.canvas.clientHeight;
-        if (this.canvas.width !== clientWidth || this.canvas.height !== clientHeight) {
-            this.canvas.width = clientWidth;
-            this.canvas.height = clientHeight;
+        const pixelRatio = window.devicePixelRatio ?? 1;
+        const actualWidth = this.canvas.clientWidth * pixelRatio;
+        const actualHeight = this.canvas.clientHeight * pixelRatio;
+        if (this.canvas.width !== actualWidth || this.canvas.height !== actualHeight) {
+            this.canvas.width = actualWidth;
+            this.canvas.height = actualHeight;
             if (callback) {
-                callback(clientWidth, clientHeight);
+                callback(actualWidth, actualHeight);
             }
         }
     }
